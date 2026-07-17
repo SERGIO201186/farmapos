@@ -1,0 +1,3157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#047857">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FarmaPos">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>FarmaPos PRO — by Omnia Technology</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --verde:    #059669;
+  --verde-dk: #047857;
+  --verde-lt: #ecfdf5;
+  --indigo:   #4f46e5;
+  --indigo-lt:#eef2ff;
+  --rojo:     #dc2626;
+  --rojo-lt:  #fef2f2;
+  --amber:    #d97706;
+  --amber-lt: #fffbeb;
+  --bg:       #f8fafc;
+  --surface:  #ffffff;
+  --border:   #e2e8f0;
+  --border2:  #cbd5e1;
+  --txt:      #0f172a;
+  --txt2:     #64748b;
+  --txt3:     #94a3b8;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Inter', sans-serif;
+  --r:        12px;
+  --r-sm:     8px;
+  --sh:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --sh-md:    0 4px 16px rgba(0,0,0,.1);
+  --sh-lg:    0 20px 60px rgba(0,0,0,.2);
+  --nav-h:    56px;
+  --bottom-h: 66px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+html,body{height:100%;overflow:hidden}
+
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--txt);
+  font-size:14px;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ══ DEMO BANNER ══ */
+#demo-banner{
+  background:linear-gradient(90deg,#7c3aed,#4f46e5);
+  color:#fff;
+  text-align:center;
+  font-size:12px;
+  font-weight:600;
+  padding:7px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  flex-shrink:0;
+  letter-spacing:.2px;
+}
+#demo-banner span{opacity:.85}
+#demo-banner button{
+  background:rgba(255,255,255,.2);
+  border:1px solid rgba(255,255,255,.4);
+  color:#fff;font:600 11px var(--sans);
+  padding:3px 10px;border-radius:20px;cursor:pointer;
+  transition:.15s;white-space:nowrap;
+}
+#demo-banner button:hover{background:rgba(255,255,255,.35)}
+
+/* ══ TOPBAR ══ */
+#topbar{
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  height:var(--nav-h);
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  gap:8px;
+  flex-shrink:0;
+  position:relative;
+  z-index:50;
+}
+.logo{
+  display:flex;align-items:center;gap:8px;
+  font-size:1.1rem;font-weight:800;color:var(--verde);
+  letter-spacing:-.5px;
+}
+.logo-icon{
+  width:34px;height:34px;
+  background:linear-gradient(135deg,var(--verde),var(--verde-dk));
+  border-radius:10px;
+  display:grid;place-items:center;
+  color:#fff;font-size:17px;
+}
+.logo sub{font-size:9px;font-weight:700;color:var(--txt3);vertical-align:super;text-transform:uppercase;letter-spacing:.5px}
+
+/* desktop nav */
+#desk-nav{display:flex;gap:2px;margin-left:16px;}
+.dnav-btn{
+  background:none;border:none;
+  color:var(--txt2);font:500 13px var(--sans);
+  padding:7px 14px;border-radius:8px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:.15s;
+}
+.dnav-btn:hover{background:var(--bg);color:var(--txt)}
+.dnav-btn.active{background:var(--verde-lt);color:var(--verde);font-weight:600}
+.dnav-btn .icon{font-size:15px}
+
+.top-spacer{flex:1}
+
+/* caja badge */
+#caja-badge{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:6px 12px;
+  font-size:12px;
+}
+#caja-badge .lbl{color:var(--txt2)}
+#caja-badge .val{font:600 13px var(--mono);color:var(--verde)}
+
+/* sync indicator */
+#sync-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--txt3);transition:.3s;flex-shrink:0;
+}
+#sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite}
+#sync-dot.ok{background:var(--verde)}
+#sync-dot.error{background:var(--rojo)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#sync-label{font-size:11px;color:var(--txt3)}
+
+/* ══ MAIN AREA ══ */
+#main{
+  flex:1;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ══ VIEWS ══ */
+.view{
+  display:none;
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:20px;
+}
+.view.active{display:flex;flex-direction:column;gap:16px}
+
+/* ══ POS SPECIFIC ══ */
+#view-pos.active{
+  padding:0;
+  flex-direction:row;
+  overflow:hidden;
+}
+#pos-left{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+  border-right:1px solid var(--border);
+}
+#pos-right{
+  width:360px;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  background:#fff;
+  overflow:hidden;
+}
+#ticket-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px}
+#ticket-footer{padding:12px 16px;border-top:1px solid var(--border);background:#fff}
+
+/* ══ BOTTOM NAV (mobile) ══ */
+#bottom-nav{
+  display:none;
+  background:#fff;
+  border-top:1px solid var(--border);
+  height:var(--bottom-h);
+  padding:6px 0 env(safe-area-inset-bottom);
+  flex-shrink:0;
+  z-index:50;
+}
+.bnav-items{display:flex;justify-content:space-around;align-items:center;height:100%}
+.bnav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;
+  color:var(--txt3);font:500 10px var(--sans);
+  padding:4px 8px;border-radius:10px;transition:.15s;
+  -webkit-tap-highlight-color:transparent;min-width:56px;
+}
+.bnav-btn .bicon{font-size:22px;line-height:1}
+.bnav-btn.active{color:var(--verde)}
+.bnav-btn.active .bicon{transform:scale(1.1)}
+
+/* ══ CARDS ══ */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  box-shadow:var(--sh);
+  padding:16px;
+}
+.card-hd{
+  font:600 11px var(--sans);
+  color:var(--txt2);
+  text-transform:uppercase;letter-spacing:.6px;
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+/* ══ STAT TILES ══ */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tile{
+  background:#fff;border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px;
+  box-shadow:var(--sh);
+}
+.tile .t-lbl{font:600 10px var(--sans);color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.tile .t-val{font:700 1.5rem var(--mono);line-height:1}
+.tile .t-sub{font:400 11px var(--sans);color:var(--txt2);margin-top:4px}
+.tile.verde .t-val{color:var(--verde)}
+.tile.rojo  .t-val{color:var(--rojo)}
+.tile.indigo .t-val{color:var(--indigo)}
+.tile.amber  .t-val{color:var(--amber)}
+
+/* ══ FORMS ══ */
+.field{margin-bottom:12px}
+label,.lbl{font:600 11px var(--sans);color:var(--txt2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+input,select,textarea{
+  width:100%;padding:10px 13px;
+  border:1.5px solid var(--border2);
+  border-radius:var(--r-sm);
+  font:14px var(--sans);color:var(--txt);background:#fff;
+  transition:border .15s,box-shadow .15s;outline:none;
+  -webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--verde);
+  box-shadow:0 0 0 3px rgba(5,150,105,.12);
+}
+input[readonly]{background:var(--bg);color:var(--txt2)}
+.barcode-inp{
+  font:600 15px var(--mono);letter-spacing:1.5px;
+  border-color:var(--indigo);background:var(--indigo-lt);
+}
+.barcode-inp:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+/* ══ BUTTONS ══ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 18px;border:none;border-radius:var(--r-sm);
+  font:600 13px var(--sans);cursor:pointer;transition:.15s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--verde);color:#fff}
+.btn-primary:hover{background:var(--verde-dk)}
+.btn-primary:disabled{background:var(--border2);color:var(--txt3);cursor:not-allowed;transform:none}
+.btn-danger{background:var(--rojo);color:#fff}
+.btn-danger:hover{background:#b91c1c}
+.btn-ghost{background:var(--bg);color:var(--txt);border:1.5px solid var(--border2)}
+.btn-ghost:hover{background:var(--border)}
+.btn-indigo{background:var(--indigo);color:#fff}
+.btn-indigo:hover{background:#4338ca}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-amber:hover{background:#b45309}
+.btn-full{width:100%}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-lg{padding:14px 24px;font-size:15px;border-radius:10px}
+
+/* ══ TABLE ══ */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r-sm);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  background:var(--bg);color:var(--txt2);
+  font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.4px;
+  padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--verde-lt)}
+
+/* ══ BADGE ══ */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:2px 8px;border-radius:20px;
+  font:600 11px var(--sans);white-space:nowrap;
+}
+.badge-verde  {background:var(--verde-lt);color:var(--verde-dk)}
+.badge-rojo   {background:var(--rojo-lt);color:var(--rojo)}
+.badge-amber  {background:var(--amber-lt);color:var(--amber)}
+.badge-indigo {background:var(--indigo-lt);color:var(--indigo)}
+.badge-gray   {background:var(--bg);color:var(--txt2);border:1px solid var(--border)}
+
+/* ══ TICKET ══ */
+.t-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 0;border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+.t-name{flex:1;min-width:0}
+.t-name strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-name small{color:var(--txt2);font-size:11px}
+.t-qty-wrap{display:flex;align-items:center;gap:4px}
+.t-qty-btn{
+  width:26px;height:26px;border-radius:6px;
+  background:var(--bg);border:1px solid var(--border2);
+  font:600 15px var(--sans);cursor:pointer;
+  display:grid;place-items:center;transition:.1s;
+}
+.t-qty-btn:active{background:var(--verde-lt)}
+.t-qty{
+  width:36px;text-align:center;
+  border:1px solid var(--border2);border-radius:6px;
+  padding:3px;font:600 13px var(--mono);
+}
+.t-price{font:600 13px var(--mono);width:68px;text-align:right;color:var(--verde)}
+.t-del{background:none;border:none;color:var(--rojo);cursor:pointer;font-size:17px;padding:0 2px;line-height:1}
+
+.tot-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+.tot-row.big{font-size:1.15rem;font-weight:800;padding-top:8px;border-top:2px solid var(--border)}
+.tot-row.big .val{color:var(--verde);font-family:var(--mono)}
+
+/* ══ MODAL ══ */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(15,23,42,.5);z-index:200;
+  align-items:center;justify-content:center;
+  padding:12px;
+  backdrop-filter:blur(2px);
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:#fff;border-radius:16px;
+  padding:24px;width:100%;max-width:500px;
+  box-shadow:var(--sh-lg);
+  max-height:90vh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.modal h3{font-size:1.05rem;font-weight:700;margin-bottom:16px}
+
+/* cobrar */
+.cobrar-total-disp{
+  background:var(--verde-lt);border:2px solid var(--verde);
+  border-radius:10px;padding:14px;text-align:center;margin-bottom:16px;
+}
+.cobrar-total-disp .lbl{font:600 11px var(--sans);color:var(--verde);text-transform:uppercase;letter-spacing:.5px}
+.cobrar-total-disp .num{font:800 2rem var(--mono);color:var(--verde)}
+.cambio-box{
+  background:var(--bg);border-radius:10px;padding:12px 16px;
+  text-align:center;margin:12px 0;
+}
+.cambio-box .lbl{font:600 10px var(--sans);color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.cambio-box .num{font:700 1.6rem var(--mono);color:var(--verde)}
+.cambio-box.neg .num{color:var(--rojo)}
+/* numpad */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.np-btn{
+  padding:16px;border:1.5px solid var(--border2);border-radius:10px;
+  font:600 18px var(--mono);background:#fff;cursor:pointer;
+  transition:.1s;touch-action:manipulation;
+}
+.np-btn:active{background:var(--verde-lt);border-color:var(--verde)}
+.np-btn.wide{grid-column:span 2}
+/* quick amounts */
+.quick-amts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.qa-btn{
+  padding:6px 12px;border:1.5px solid var(--border2);border-radius:8px;
+  font:600 12px var(--mono);background:#fff;cursor:pointer;transition:.1s;
+}
+.qa-btn:active{background:var(--verde-lt);border-color:var(--verde)}
+
+/* ══ POS PRODUCT GRID ══ */
+#pos-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+  gap:10px;
+}
+.pg-card{
+  background:#fff;border:1.5px solid var(--border);
+  border-radius:var(--r);padding:12px;
+  cursor:pointer;transition:.15s;
+  touch-action:manipulation;
+  user-select:none;
+}
+.pg-card:active{transform:scale(.97)}
+.pg-card:hover{border-color:var(--verde);box-shadow:0 0 0 3px rgba(5,150,105,.1)}
+.pg-card.no-stock{opacity:.45;cursor:not-allowed;pointer-events:none}
+.pg-code{font:500 10px var(--mono);color:var(--txt3);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-name{font:600 13px var(--sans);line-height:1.3;margin-bottom:6px;min-height:32px}
+.pg-foot{display:flex;justify-content:space-between;align-items:center}
+.pg-price{font:700 14px var(--mono);color:var(--verde)}
+
+/* ══ SEARCH BAR ══ */
+.search-wrap{position:relative;margin-bottom:12px}
+.search-wrap input{padding-left:36px}
+.search-wrap::before{
+  content:'🔍';position:absolute;
+  left:11px;top:50%;transform:translateY(-50%);
+  font-size:14px;pointer-events:none;
+}
+
+/* ══ FILTER ROW ══ */
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.filter-row input,.filter-row select{width:auto;flex:1;min-width:130px}
+
+/* ══ TABS ══ */
+.tabs{display:flex;gap:4px;padding:3px;background:var(--bg);border-radius:10px;margin-bottom:16px}
+.tab-btn{
+  flex:1;padding:7px;border-radius:8px;border:none;
+  font:600 12px var(--sans);cursor:pointer;
+  background:none;color:var(--txt2);transition:.15s;
+  white-space:nowrap;
+}
+.tab-btn.active{background:#fff;color:var(--verde);box-shadow:var(--sh)}
+
+/* ══ MOV LIST ══ */
+.mov-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.mov-item:last-child{border-bottom:none}
+.mov-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.mov-body{flex:1;min-width:0}
+.mov-body strong{display:block;font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mov-body span{font-size:11px;color:var(--txt2)}
+.mov-amt{font:600 14px var(--mono);white-space:nowrap}
+
+/* ══ BAR CHART ══ */
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:8px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar-fill{width:100%;border-radius:5px 5px 0 0;min-height:4px;transition:height .4s}
+.bar-lbl{font-size:9px;color:var(--txt2);text-align:center}
+.bar-amt{font-size:9px;font-family:var(--mono);color:var(--txt2)}
+
+/* ══ SETTINGS PANEL ══ */
+.settings-section{margin-bottom:20px}
+.settings-section h3{font:600 12px var(--sans);color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.setting-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid var(--border);gap:16px;
+}
+.setting-row:last-child{border-bottom:none}
+.setting-info strong{font-size:13px;display:block}
+.setting-info span{font-size:11px;color:var(--txt2)}
+/* toggle */
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;
+  background:var(--border2);border-radius:12px;cursor:pointer;transition:.3s;
+}
+.toggle-slider::before{
+  content:'';position:absolute;
+  width:18px;height:18px;
+  background:#fff;border-radius:50%;
+  top:3px;left:3px;transition:.3s;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+input:checked+.toggle-slider{background:var(--verde)}
+input:checked+.toggle-slider::before{transform:translateX(20px)}
+
+/* ══ SHEETS CONFIG ══ */
+.sheets-status{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-radius:8px;
+  background:var(--bg);border:1px solid var(--border);
+  font-size:12px;margin-bottom:12px;
+}
+.sheets-status.connected{background:var(--verde-lt);border-color:var(--verde)}
+.sheets-status.error{background:var(--rojo-lt);border-color:var(--rojo)}
+
+/* ══ EMPTY STATE ══ */
+.empty{
+  text-align:center;padding:40px 20px;color:var(--txt2);
+}
+.empty .e-icon{font-size:2.5rem;margin-bottom:8px}
+.empty p{font-size:13px}
+
+/* ══ TOAST ══ */
+#toast{
+  position:fixed;bottom:calc(var(--bottom-h) + 12px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--txt);color:#fff;
+  padding:11px 20px;border-radius:10px;
+  font:500 13px var(--sans);
+  box-shadow:var(--sh-lg);
+  opacity:0;transition:.28s;z-index:9999;
+  white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--verde-dk)}
+#toast.err{background:var(--rojo)}
+#toast.warn{background:var(--amber)}
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
+
+/* ══ DIVIDER ══ */
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+/* ══ RESPONSIVE BREAKPOINTS ══ ════════════════ */
+
+/* TABLET (≤900px) */
+@media(max-width:900px){
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  #pos-right{width:300px}
+}
+
+/* MOBILE (≤640px) */
+@media(max-width:640px){
+  #desk-nav{display:none}
+  #caja-badge .lbl{display:none}
+  #bottom-nav{display:flex}
+  #sync-label{display:none}
+
+  /* POS mobile: stack vertically, ticket on top */
+  #view-pos.active{flex-direction:column}
+  #pos-right{width:100%;border-right:none;border-bottom:1px solid var(--border)}
+  #pos-left{border-right:none}
+  #ticket-scroll{max-height:230px}
+
+  /* full-width modal */
+  .modal{max-width:100%;border-radius:20px 20px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:92vh}
+  .modal-bg{align-items:flex-end;padding:0}
+
+  .tiles{grid-template-columns:1fr 1fr}
+  .tile .t-val{font-size:1.2rem}
+
+  .view{padding:12px}
+  .card{padding:14px}
+
+  #pos-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+
+  /* bottom nav safe area */
+  #toast{bottom:calc(var(--bottom-h) + 8px)}
+}
+
+@media(max-width:380px){
+  #pos-grid{grid-template-columns:1fr 1fr}
+  .tiles{grid-template-columns:1fr 1fr}
+}
+
+@media(min-width:641px){
+  #topbar{padding:0 24px}
+  .view{padding:24px}
+}
+
+/* ══ TICKET MODAL POST-VENTA ══ */
+#modal-ticket .modal{max-width:380px;padding:0;overflow:hidden}
+.ticket-preview{
+  font-family:'Courier New',Courier,monospace;
+  font-size:13px;
+  background:#fff;
+  padding:20px 18px;
+  line-height:1.55;
+  border-bottom:2px dashed var(--border2);
+}
+.ticket-preview .tk-logo{text-align:center;font-size:1.1rem;font-weight:700;letter-spacing:1px;margin-bottom:2px}
+.ticket-preview .tk-sub{text-align:center;font-size:11px;color:#555;margin-bottom:10px}
+.ticket-preview .tk-div{border-top:1px dashed #aaa;margin:8px 0}
+.ticket-preview .tk-row{display:flex;justify-content:space-between;gap:4px}
+.ticket-preview .tk-row .tk-left{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ticket-preview .tk-row .tk-right{white-space:nowrap;font-weight:600}
+.ticket-preview .tk-total{font-size:16px;font-weight:700;display:flex;justify-content:space-between;margin:4px 0}
+.ticket-preview .tk-foot{text-align:center;font-size:11px;color:#666;margin-top:10px}
+.ticket-actions{
+  display:flex;gap:8px;padding:14px 16px;background:var(--bg);
+}
+
+/* ══ PANTALLA DE CONTROL DE ACCESO OMNIA ══ */
+#omnia-gate{
+  position:fixed;inset:0;z-index:99999;
+  background:#0f172a;color:#fff;
+  display:none;align-items:center;justify-content:center;
+  padding:24px;text-align:center;
+}
+#omnia-gate.show{display:flex}
+.omnia-gate-box{max-width:380px}
+.omnia-gate-box .og-icon{font-size:2.6rem;margin-bottom:10px}
+.omnia-gate-box h2{font:700 1.2rem var(--sans);margin-bottom:8px}
+.omnia-gate-box p{font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:6px}
+.omnia-gate-box .og-badge{display:inline-block;margin-top:12px;padding:5px 14px;border-radius:20px;font:600 11px var(--sans);background:rgba(255,255,255,.08)}
+
+/* ══ PRINT STYLES ══ */
+@media print {
+  /* Ocultar todo excepto el iframe de impresión */
+  body > *:not(#print-frame){ display:none !important }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PANTALLA DE CONTROL DE ACCESO (Omnia Technology) ══ -->
+<div id="omnia-gate">
+  <div class="omnia-gate-box">
+    <div class="og-icon" id="og-icon">⏳</div>
+    <h2 id="og-title">Verificando acceso…</h2>
+    <p id="og-msg">Un momento por favor.</p>
+    <div class="og-badge" id="og-badge" style="display:none"></div>
+
+    <div id="og-contacto-form" style="display:none;text-align:left;margin-top:16px">
+      <div class="field">
+        <label style="color:#94a3b8">Nombre del negocio</label>
+        <input id="og-nombre" placeholder="Farmacia San Juan" style="background:#1e293b;border-color:#334155;color:#fff">
+      </div>
+      <div class="field">
+        <label style="color:#94a3b8">WhatsApp</label>
+        <input id="og-telefono" type="tel" placeholder="228 000 0000" style="background:#1e293b;border-color:#334155;color:#fff">
+      </div>
+      <div class="field">
+        <label style="color:#94a3b8">Email (opcional)</label>
+        <input id="og-email" type="email" placeholder="tucorreo@ejemplo.com" style="background:#1e293b;border-color:#334155;color:#fff">
+      </div>
+      <div id="og-contacto-error" style="display:none;color:#fca5a5;font-size:12px;margin-bottom:8px"></div>
+      <button class="btn btn-primary btn-full" id="og-contacto-btn" onclick="enviarContactoOmnia()">📩 Enviar mis datos</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo">
+    <div class="logo-icon">💊</div>
+    <div style="line-height:1.1">FarmaPos<sub>PRO</sub><br><span style="font-size:9px;color:var(--txt3)">by Omnia Technology</span></div>
+  </div>
+  <nav id="desk-nav">
+    <button class="dnav-btn active" onclick="showView('pos',this)"><span class="icon">🛒</span>Venta</button>
+    <button class="dnav-btn" onclick="showView('inventario',this)"><span class="icon">📦</span>Inventario</button>
+    <button class="dnav-btn" onclick="showView('caja',this)"><span class="icon">💰</span>Caja</button>
+    <button class="dnav-btn" onclick="showView('reportes',this)"><span class="icon">📊</span>Reportes</button>
+    <button class="dnav-btn" onclick="showView('config',this)"><span class="icon">⚙️</span>Config</button>
+  </nav>
+  <div class="top-spacer"></div>
+  <div id="sync-dot" title="Estado de sincronización"></div>
+  <span id="sync-label" style="font-size:11px;color:var(--txt3)">Sin conectar</span>
+  <a href="https://wa.me/525547894225?text=Hola%2C%20necesito%20soporte%20con%20FarmaPos%20PRO" target="_blank" class="btn btn-ghost btn-sm" style="margin:0 4px" title="Contactar soporte">💬 Soporte</a>
+  <button id="btn-install" onclick="installPWA()" style="display:none" class="btn btn-ghost btn-sm" title="Instalar aplicación">📲 Instalar</button>
+  <div id="caja-badge">
+    <span class="lbl">Caja&nbsp;</span>
+    <span class="val" id="badge-saldo">$0.00</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+<!-- ═══════ VIEW: POS ═══════ -->
+<div id="view-pos" class="view active">
+  <!-- Ticket (right on desktop, top on mobile) -->
+  <div id="pos-right">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font:700 13px var(--sans)">🧾 Ticket</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearTicket()">🗑 Limpiar</button>
+    </div>
+    <div id="ticket-scroll">
+      <div id="ticket-empty" class="empty" style="padding:24px 0">
+        <div class="e-icon">🛒</div>
+        <p>Escanea un producto<br>o selecciónalo abajo</p>
+      </div>
+      <div id="ticket-rows"></div>
+    </div>
+    <div id="ticket-footer" style="display:none">
+      <div class="tot-row"><span>Subtotal</span><span style="font-family:var(--mono)" id="t-sub"></span></div>
+      <div class="tot-row" id="desc-row-disp" style="display:none;color:var(--rojo)">
+        <span id="desc-label">Descuento</span><span style="font-family:var(--mono)" id="t-desc"></span>
+      </div>
+      <div class="tot-row big"><span>TOTAL</span><span class="val" id="t-total"></span></div>
+      <div style="display:flex;gap:6px;align-items:center;margin:10px 0 6px">
+        <span style="font:600 11px var(--sans);color:var(--txt2);white-space:nowrap">DESC %</span>
+        <input type="number" id="pos-desc" min="0" max="100" value="0"
+          style="width:70px;flex-shrink:0" oninput="renderTotals()">
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" id="btn-cobrar" onclick="openCobrar()">
+        💳 Cobrar
+      </button>
+    </div>
+  </div>
+
+  <!-- Left: scan + grid -->
+  <div id="pos-left">
+    <div style="margin-bottom:12px">
+      <label>Código de barras — escanea aquí</label>
+      <input id="pos-barcode" class="barcode-inp" type="text"
+        placeholder="Escanea o escribe y presiona Enter…"
+        autocomplete="off"
+        onkeydown="if(event.key==='Enter')posAddByBarcode()">
+    </div>
+    <div class="filter-row">
+      <div class="search-wrap" style="flex:2;margin:0">
+        <input id="pos-q" placeholder="Buscar producto…" oninput="renderPosGrid()">
+      </div>
+      <select id="pos-cat" style="flex:1" onchange="renderPosGrid()">
+        <option value="">Todas</option>
+      </select>
+    </div>
+    <div id="pos-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════ VIEW: INVENTARIO ═══════ -->
+<div id="view-inventario" class="view">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <h2 style="font:700 1.1rem var(--sans)">📦 Inventario</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ CSV</button>
+      <button class="btn btn-primary" onclick="openProdModal()">+ Nuevo producto</button>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile indigo"><div class="t-lbl">Productos</div><div class="t-val" id="inv-n">0</div></div>
+    <div class="tile verde"><div class="t-lbl">Valor inventario</div><div class="t-val" id="inv-val">$0</div></div>
+    <div class="tile amber"><div class="t-lbl">Stock bajo</div><div class="t-val" id="inv-bajo">0</div></div>
+    <div class="tile rojo"><div class="t-lbl">Sin existencia</div><div class="t-val" id="inv-cero">0</div></div>
+  </div>
+
+  <!-- Escanear para agregar stock -->
+  <div class="card">
+    <div class="card-hd">📷 Agregar stock escaneando</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div class="field" style="flex:1;min-width:160px;margin:0">
+        <label>Código de barras</label>
+        <input id="inv-bc" class="barcode-inp" placeholder="Escanea aquí…"
+          onkeydown="if(event.key==='Enter')invScan()">
+      </div>
+      <div class="field" style="width:90px;margin:0">
+        <label>Cantidad</label>
+        <input type="number" id="inv-qty" value="1" min="1">
+      </div>
+      <button class="btn btn-amber" onclick="invScan()">+ Agregar</button>
+    </div>
+    <p id="inv-scan-msg" style="margin-top:8px;font-size:12px;display:none"></p>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+      <div class="filter-row" style="margin:0">
+        <div class="search-wrap" style="flex:2;margin:0">
+          <input id="inv-q" placeholder="Buscar nombre / código…" oninput="renderInv()">
+        </div>
+        <select id="inv-cat-f" style="flex:1" onchange="renderInv()"><option value="">Todas las categorías</option></select>
+        <select id="inv-stk-f" style="flex:1" onchange="renderInv()">
+          <option value="">Todo el stock</option>
+          <option value="bajo">Stock bajo</option>
+          <option value="cero">Sin existencia</option>
+        </select>
+      </div>
+    </div>
+    <div class="tbl-wrap" style="border:none;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th><th>Nombre</th><th>Categoría</th>
+            <th>Precio</th><th>Costo</th><th>Stock</th><th>Vence</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="inv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ VIEW: CAJA ═══════ -->
+<div id="view-caja" class="view">
+  <h2 style="font:700 1.1rem var(--sans)">💰 Caja</h2>
+  <div class="tiles">
+    <div class="tile verde"><div class="t-lbl">Saldo en caja</div><div class="t-val" id="caja-saldo-big">$0.00</div><div class="t-sub" id="caja-estado-txt">Cerrada</div></div>
+    <div class="tile verde"><div class="t-lbl">Ingresos hoy</div><div class="t-val" id="caja-ing-hoy">$0.00</div></div>
+    <div class="tile rojo"><div class="t-lbl">Egresos hoy</div><div class="t-val" id="caja-egr-hoy">$0.00</div></div>
+    <div class="tile indigo"><div class="t-lbl">Ventas hoy</div><div class="t-val" id="caja-vtashoy">0</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap" id="caja-grid">
+    <div class="card">
+      <div class="card-hd">🔑 Apertura / Cierre</div>
+      <div id="caja-closed">
+        <div class="field">
+          <label>Fondo inicial ($)</label>
+          <input type="number" id="caja-fondo" value="1000" min="0">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="abrirCaja()">▶ Abrir caja</button>
+      </div>
+      <div id="caja-open" style="display:none">
+        <p style="font-size:13px;color:var(--txt2);margin-bottom:14px">Caja abierta. Registra movimientos y cierra al finalizar el turno.</p>
+        <button class="btn btn-danger btn-full" onclick="cerrarCaja()">⏹ Cerrar caja y generar corte</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">➕➖ Movimiento manual</div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="mov-tipo">
+          <option value="ingreso">💚 Ingreso</option>
+          <option value="egreso">🔴 Egreso</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Monto ($)</label>
+        <input type="number" id="mov-monto" min="0" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label>Concepto</label>
+        <input id="mov-concepto" placeholder="Ej: Pago proveedor…">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="registrarMov()">Registrar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">📋 Movimientos del día</div>
+    <div id="mov-list"></div>
+    <div class="empty" id="mov-empty"><p>Sin movimientos registrados hoy</p></div>
+  </div>
+</div>
+
+<!-- ═══════ VIEW: REPORTES ═══════ -->
+<div id="view-reportes" class="view">
+  <h2 style="font:700 1.1rem var(--sans)">📊 Reportes</h2>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('r-resumen',this)">Resumen</button>
+    <button class="tab-btn" onclick="showTab('r-ventas',this)">Ventas</button>
+    <button class="tab-btn" onclick="showTab('r-top',this)">Top productos</button>
+    <button class="tab-btn" onclick="showTab('r-cortes',this)">Cortes</button>
+  </div>
+
+  <!-- RESUMEN -->
+  <div id="r-resumen">
+    <div class="filter-row" style="margin-bottom:12px">
+      <label style="margin:0;white-space:nowrap;align-self:center">Período:</label>
+      <select id="rep-per" onchange="renderReportes()">
+        <option value="hoy">Hoy</option>
+        <option value="sem">Últimos 7 días</option>
+        <option value="mes" selected>Este mes</option>
+        <option value="todo">Todo</option>
+      </select>
+    </div>
+    <div class="tiles">
+      <div class="tile verde"><div class="t-lbl">Ventas</div><div class="t-val" id="r-vtot">$0</div><div class="t-sub" id="r-vn">0 tickets</div></div>
+      <div class="tile rojo"><div class="t-lbl">Costo</div><div class="t-val" id="r-costo">$0</div></div>
+      <div class="tile indigo"><div class="t-lbl">Ganancia</div><div class="t-val" id="r-gan">$0</div></div>
+      <div class="tile amber"><div class="t-lbl">Margen</div><div class="t-val" id="r-marg">0%</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">Ingresos últimos 7 días</div>
+      <div class="bar-chart" id="bar-chart"></div>
+    </div>
+  </div>
+
+  <!-- VENTAS -->
+  <div id="r-ventas" style="display:none">
+    <div class="filter-row">
+      <input id="rv-q" placeholder="🔍 Buscar folio o producto…" oninput="renderHistorial()">
+      <input type="date" id="rv-fecha" onchange="renderHistorial()">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Folio</th><th>Arts</th><th>Total</th><th>Método</th><th></th></tr></thead>
+        <tbody id="rv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TOP -->
+  <div id="r-top" style="display:none">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Producto</th><th>Unidades</th><th>Total vendido</th></tr></thead>
+        <tbody id="rtop-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CORTES -->
+  <div id="r-cortes" style="display:none">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Apertura</th><th>Cierre</th><th>Fondo</th><th>Ingresos</th><th>Egresos</th><th>Saldo final</th></tr></thead>
+        <tbody id="rc-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ VIEW: CONFIG ═══════ -->
+<div id="view-config" class="view">
+  <h2 style="font:700 1.1rem var(--sans)">⚙️ Configuración</h2>
+
+  <!-- ── PANEL DEMO (visible por defecto, se oculta al activar licencia) ── -->
+  <div id="cfg-demo-panel">
+    <div class="card" style="border:2px solid var(--indigo);background:var(--indigo-lt)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:2rem">🔬</span>
+        <div>
+          <div style="font:700 15px var(--sans);color:var(--indigo)">Modo Demo activo</div>
+          <div style="font-size:12px;color:var(--txt2)">Estás explorando FarmaPos PRO. Activa tu licencia para habilitar la sincronización con Google Sheets y guardar tus datos permanentemente.</div>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font:700 12px var(--sans);color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">✅ Incluido en tu licencia</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px">
+          <div>💊 POS con escáner de código de barras</div>
+          <div>📦 Inventario con alertas de stock</div>
+          <div>💰 Manejo de caja y cortes</div>
+          <div>📊 Reportes e historial</div>
+          <div>🖨 Impresión de tickets térmicos</div>
+          <div>☁️ Sincronización con Google Sheets</div>
+          <div>📱 Instala en celular, tablet o PC</div>
+          <div>🔒 Tus datos, en tu cuenta de Google</div>
+        </div>
+      </div>
+      <button class="btn btn-indigo btn-full" style="font-size:15px;padding:14px" onclick="openModal('modal-licencia')">
+        🔑 Ingresar clave de activación
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🏪 Personaliza tu demo</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Ingresa los datos de tu farmacia para ver cómo aparecerán en los tickets de venta.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0"><label>Nombre de la farmacia</label><input id="cfg-nombre" placeholder="Farmacia San Juan"></div>
+        <div class="field" style="margin:0"><label>RFC / Razón social</label><input id="cfg-rfc" placeholder="JSJ010101XXX"></div>
+        <div class="field" style="margin:0"><label>Teléfono</label><input id="cfg-tel" placeholder="228 000 0000"></div>
+        <div class="field" style="margin:0"><label>Dirección</label><input id="cfg-dir" placeholder="Calle, Col, Ciudad"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="guardarNegocio()">💾 Guardar en ticket</button>
+    </div>
+  </div>
+
+  <!-- ── PANEL PRO (oculto, se muestra al validar licencia) ── -->
+  <div id="cfg-pro-panel" style="display:none">
+
+    <div class="card" style="border:2px solid var(--verde);background:var(--verde-lt);padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.4rem">🟢</span>
+          <div>
+            <div style="font:700 14px var(--sans);color:var(--verde-dk)">Licencia PRO activa</div>
+            <div id="pro-expiry-badge" style="font-size:12px;color:var(--verde-dk);margin-top:2px"></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSesionPro()">Cerrar sesión PRO</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🏪 Datos del negocio</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0"><label>Nombre de la farmacia</label><input id="cfg-nombre-pro" placeholder="Farmacia San Juan"></div>
+        <div class="field" style="margin:0"><label>RFC / Razón social</label><input id="cfg-rfc-pro" placeholder="JSJ010101XXX"></div>
+        <div class="field" style="margin:0"><label>Teléfono</label><input id="cfg-tel-pro" placeholder="228 000 0000"></div>
+        <div class="field" style="margin:0"><label>Dirección</label><input id="cfg-dir-pro" placeholder="Calle, Col, Ciudad"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="guardarNegocioPro()">💾 Guardar</button>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🎨 Logo y Branding</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div>
+          <label style="display:block;margin-bottom:8px;font-weight:600;font-size:13px">Logo de tu farmacia</label>
+          <div id="logo-preview" style="width:100%;aspect-ratio:1;background:var(--bg);border:2px dashed var(--txt3);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:2rem">📷</div>
+          <input id="cfg-logo-file" type="file" accept="image/*" onchange="previewLogo()" style="margin-top:8px;width:100%">
+          <button class="btn btn-ghost btn-sm btn-full" style="margin-top:8px" onclick="limpiarLogo()">🗑 Quitar logo</button>
+          <p style="font-size:11px;color:var(--txt3);margin-top:8px">PNG, JPG o SVG — máx 2 MB. Se mostrará en los tickets impresos.</p>
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:8px;font-weight:600;font-size:13px">Vista previa en ticket</label>
+          <div style="border:1px solid var(--txt3);border-radius:8px;padding:12px;background:#fff;color:#000;font-family:monospace;font-size:10px;line-height:1.6">
+            <div style="text-align:center;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed #ccc">
+              <div id="ticket-logo-preview" style="height:40px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;color:#888">---logo---</div>
+              <div style="font-weight:bold" id="ticket-nombre-preview">Farmacia San Juan</div>
+              <div style="font-size:9px" id="ticket-rfc-preview">RFC: JSJ010101XXX</div>
+            </div>
+            <div style="text-align:center;font-size:9px;margin-top:4px">Venta #V-0001</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="guardarBranding()">💾 Guardar branding</button>
+    </div>
+
+      <div id="sheets-status-box" class="sheets-status">
+        <span id="sheets-dot">⚪</span>
+        <span id="sheets-txt">Sin configurar — los datos se guardan localmente</span>
+      </div>
+      <div class="field">
+        <label>URL del Apps Script (Web App)</label>
+        <input id="cfg-url" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="guardarConfig()">💾 Guardar y probar</button>
+        <button class="btn btn-ghost" onclick="testConexion()">🔄 Probar conexión</button>
+        <button class="btn btn-ghost" onclick="syncNow()">⬆ Sincronizar ahora</button>
+      </div>
+      <details style="margin-top:14px">
+        <summary style="font:600 12px var(--sans);cursor:pointer;color:var(--indigo)">📋 Instrucciones de configuración</summary>
+        <div style="font-size:12px;color:var(--txt2);margin-top:10px;line-height:1.7;background:var(--bg);padding:12px;border-radius:8px">
+          <strong>1.</strong> Ve a <a href="https://sheets.google.com" target="_blank" style="color:var(--indigo)">sheets.google.com</a> y crea una hoja llamada <strong>FarmaPos</strong>.<br>
+          <strong>2.</strong> Ve a Extensiones → Apps Script y pega el código.<br>
+          <strong>3.</strong> Ejecuta la función <code>setupSheets</code> una vez.<br>
+          <strong>4.</strong> Implementa como Aplicación Web → Cualquier persona → copia la URL.<br>
+          <strong>5.</strong> Pégala arriba y guarda.<br><br>
+          <button class="btn btn-ghost btn-sm" onclick="copyScript()">📋 Copiar código Apps Script</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">⚠️ Zona de peligro</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportDB()">⬇ Exportar datos</button>
+        <button class="btn btn-danger btn-sm" onclick="borrarTodo()">🗑 Borrar todos los datos</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🔌 Dispositivos Conectados</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Conecta tu escáner de códigos de barras e impresora térmica para una experiencia completa en POS.</p>
+
+      <!-- ESCÁNER DE CÓDIGOS DE BARRAS -->
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:8px">📱 Escáner de Códigos de Barras</label>
+        
+        <div id="escaner-status" style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:10px;font-size:12px">
+          <span id="escaner-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-right:6px"></span>
+          <span id="escaner-txt">No conectado</span>
+        </div>
+
+        <details style="margin-bottom:10px">
+          <summary style="font:600 12px var(--sans);cursor:pointer;color:var(--indigo)">📋 Tipos de conexión soportados</summary>
+          <div style="background:var(--bg);padding:10px;border-radius:6px;margin-top:8px;font-size:11px;line-height:1.6">
+            <strong>✅ Emulación de teclado (RECOMENDADO):</strong> Cualquier escáner USB o Bluetooth que emule teclado. Funciona automáticamente — solo escanea en el campo "Código".<br><br>
+            <strong>📲 Bluetooth Web API:</strong> Dispositivos Bluetooth clásicos (navegadores Chrome/Edge). Requiere emparejamiento previo en el dispositivo.<br><br>
+            <strong>🔌 USB directo:</strong> Escáner USB-HID. Detecta automáticamente cuando se enchufa.
+          </div>
+        </details>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-primary btn-sm btn-full" id="btn-escaner-detectar" onclick="detectarEscaner()">🔍 Detectar Bluetooth</button>
+          <button class="btn btn-ghost btn-sm btn-full" id="btn-escaner-test" onclick="testEscaner()" style="display:none">🧪 Probar escáner</button>
+        </div>
+
+        <div id="escaner-test-box" style="display:none;margin-top:10px">
+          <input id="escaner-test-input" placeholder="Escanea un código aquí para probar..." style="width:100%;padding:8px;border:1px solid var(--txt3);border-radius:6px;font-size:12px">
+          <p id="escaner-test-result" style="font-size:11px;color:var(--txt3);margin-top:4px">Resultado del escaneo aparecerá aquí</p>
+        </div>
+
+        <p style="font-size:11px;color:var(--txt3);margin-top:10px">💡 <strong>Consejo:</strong> La mayoría de escáneres USB funcionan sin configuración. Si tienes Bluetooth, haz pairing primero en tu dispositivo.</p>
+      </div>
+
+      <!-- IMPRESORA TÉRMICA -->
+      <div>
+        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:8px">🖨️ Impresora Térmica</label>
+        
+        <div id="impresora-status" style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:10px;font-size:12px">
+          <span id="impresora-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-right:6px"></span>
+          <span id="impresora-txt">No configurada</span>
+        </div>
+
+        <details style="margin-bottom:10px">
+          <summary style="font:600 12px var(--sans);cursor:pointer;color:var(--indigo)">📋 Cómo conectar tu impresora</summary>
+          <div style="background:var(--bg);padding:10px;border-radius:6px;margin-top:8px;font-size:11px;line-height:1.6">
+            <strong>1. USB directo:</strong> Enchufa la impresora al dispositivo. Si es térmica 80mm (ESC/POS), detecta automáticamente.<br><br>
+            <strong>2. Bluetooth:</strong> Empareja en tu dispositivo → aparecerá en "Detectar Bluetooth".<br><br>
+            <strong>3. WiFi (para impresoras inteligentes):</strong> Pega la IP o hostname de tu impresora en el campo de abajo.<br><br>
+            <strong>⚠️ Nota:</strong> Necesita navegador Chrome/Edge. Firefox y Safari tienen soporte limitado.
+          </div>
+        </details>
+
+        <div class="field">
+          <label>IP o Hostname de impresora WiFi (opcional)</label>
+          <input id="cfg-impresora-ip" placeholder="192.168.1.100 o impresora.local" style="margin-bottom:8px">
+        </div>
+
+        <div class="field">
+          <label>Ancho del papel</label>
+          <select id="cfg-ticket-ancho" onchange="guardarAnchoTicket()">
+            <option value="80">80 mm (estándar)</option>
+            <option value="58">58 mm (mini)</option>
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-primary btn-sm btn-full" onclick="detectarImpresora()">🔍 Detectar impresora</button>
+          <button class="btn btn-ghost btn-sm btn-full" onclick="impresionPrueba()">🧪 Probar impresión</button>
+        </div>
+
+        <p style="font-size:11px;color:var(--txt3);margin-top:10px">💡 Una vez conectada, los tickets se imprimen automáticamente al confirmar venta (o manualmente en Ver ticket).</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">🆘 Soporte y Contacto</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">¿Tienes dudas o necesitas ayuda? Omnia Technology está aquí para apoyarte.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <a href="https://wa.me/525547894225?text=Hola%2C%20necesito%20soporte%20con%20FarmaPos%20PRO" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none">
+          💬 WhatsApp
+        </a>
+        <a href="mailto:huertafune@gmail.com?subject=Soporte%20FarmaPos%20PRO" class="btn btn-primary" style="text-align:center;text-decoration:none">
+          📧 Email
+        </a>
+      </div>
+      <details style="font-size:12px;color:var(--txt2)">
+        <summary style="font-weight:600;cursor:pointer;color:var(--indigo);margin-bottom:8px">❓ Preguntas frecuentes</summary>
+        <div style="background:var(--bg);padding:10px;border-radius:6px;margin-top:8px;line-height:1.6">
+          <strong>¿Cómo sincronizo con Google Sheets?</strong><br>Ve a Configuración → Google Sheets, pega la URL de tu Apps Script y prueba la conexión.<br><br>
+          <strong>¿Se pierden mis datos si se va la luz?</strong><br>No. Los datos se guardan en tu navegador (localStorage) y en Google Sheets. Estás protegido en ambos lados.<br><br>
+          <strong>¿Puedo usar FarmaPos en múltiples dispositivos?</strong><br>Sí, solo sincroniza todos a la misma Google Sheet. Los datos se actualizan automáticamente.<br><br>
+          <strong>¿Cuánto cuesta el soporte?</strong><br>El soporte está incluido en tu licencia PRO. Contacta por WhatsApp sin costo.<br><br>
+          <strong>¿Cómo renuewo mi licencia?</strong><br>Tu equipo de Omnia Technology te contactará antes de que expire. Recibirás un aviso con tiempo.
+        </div>
+      </details>
+    </div>
+
+  </div><!-- /cfg-pro-panel -->
+
+  <div style="text-align:center;padding:20px 0 4px;color:var(--txt3);font-size:11px">
+    FarmaPos PRO · Distribuido por <strong style="color:var(--txt2)">Omnia Technology</strong>
+  </div>
+</div>
+
+
+</div><!-- /main -->
+
+<!-- BOTTOM NAV (mobile) -->
+<div id="bottom-nav">
+  <div class="bnav-items">
+    <button class="bnav-btn active" onclick="showView('pos',this)"><span class="bicon">🛒</span>Venta</button>
+    <button class="bnav-btn" onclick="showView('inventario',this)"><span class="bicon">📦</span>Inventario</button>
+    <button class="bnav-btn" onclick="showView('caja',this)"><span class="bicon">💰</span>Caja</button>
+    <button class="bnav-btn" onclick="showView('reportes',this)"><span class="bicon">📊</span>Reportes</button>
+    <button class="bnav-btn" onclick="showView('config',this)"><span class="bicon">⚙️</span>Config</button>
+  </div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Producto -->
+<div class="modal-bg" id="modal-prod">
+  <div class="modal">
+    <h3 id="mprod-title">➕ Nuevo producto</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" style="margin:0"><label>Código de barras *</label><input id="p-bc" class="barcode-inp" placeholder="Escanea o escribe"></div>
+      <div class="field" style="margin:0"><label>Nombre *</label><input id="p-nom" placeholder="Paracetamol 500mg"></div>
+      <div class="field" style="margin:0"><label>Categoría</label><input id="p-cat" list="cat-dl" placeholder="Analgésicos"></div>
+      <div class="field" style="margin:0"><label>Proveedor</label><input id="p-prov" placeholder="Nombre"></div>
+      <div class="field" style="margin:0"><label>Precio venta ($) *</label><input type="number" id="p-precio" min="0" step=".01" placeholder="0.00"></div>
+      <div class="field" style="margin:0"><label>Costo ($)</label><input type="number" id="p-costo" min="0" step=".01" placeholder="0.00"></div>
+      <div class="field" style="margin:0"><label>Stock *</label><input type="number" id="p-stock" value="0" min="0"></div>
+      <div class="field" style="margin:0"><label>Stock mínimo</label><input type="number" id="p-smin" value="5" min="0"></div>
+      <div class="field" style="margin:0"><label>Vencimiento</label><input type="date" id="p-vence"></div>
+      <div class="field" style="margin:0"><label>Unidad</label><input id="p-unidad" value="pza" placeholder="pza / caja"></div>
+    </div>
+    <datalist id="cat-dl"></datalist>
+    <div class="field" style="margin-top:10px"><label>Descripción</label><textarea id="p-desc" rows="2" style="resize:vertical;font:14px var(--sans)"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-prod')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarProducto()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cobrar -->
+<div class="modal-bg" id="modal-cobrar">
+  <div class="modal" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarVenta();}">
+    <h3>💳 Cobrar venta</h3>
+    <div class="cobrar-total-disp">
+      <div class="lbl">Total a cobrar</div>
+      <div class="num" id="cobrar-total-num">$0.00</div>
+    </div>
+    <div class="field">
+      <label>Método de pago</label>
+      <select id="cobrar-metodo" onchange="toggleEfectivo()">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="tarjeta">💳 Tarjeta</option>
+        <option value="transferencia">📱 Transferencia</option>
+      </select>
+    </div>
+    <div id="efectivo-ui">
+      <div class="field">
+        <label>Con cuánto paga ($)</label>
+        <input type="number" id="cobrar-rec" min="0" step=".01" oninput="calcCambio()" placeholder="0.00">
+      </div>
+      <div class="quick-amts" id="quick-amts"></div>
+      <div class="numpad">
+        <button class="np-btn" onclick="np('1')">1</button><button class="np-btn" onclick="np('2')">2</button><button class="np-btn" onclick="np('3')">3</button>
+        <button class="np-btn" onclick="np('4')">4</button><button class="np-btn" onclick="np('5')">5</button><button class="np-btn" onclick="np('6')">6</button>
+        <button class="np-btn" onclick="np('7')">7</button><button class="np-btn" onclick="np('8')">8</button><button class="np-btn" onclick="np('9')">9</button>
+        <button class="np-btn" onclick="np('.')">.</button><button class="np-btn" onclick="np('0')">0</button><button class="np-btn" onclick="np('⌫')">⌫</button>
+      </div>
+      <div class="cambio-box" id="cambio-box">
+        <div class="lbl">Cambio</div>
+        <div class="num" id="cambio-num">$0.00</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-cobrar')">Cancelar</button>
+      <button class="btn btn-primary btn-lg" style="flex:2" onclick="confirmarVenta()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detalle venta (historial) -->
+<div class="modal-bg" id="modal-vdet">
+  <div class="modal">
+    <h3>🧾 Detalle de venta</h3>
+    <div id="vdet-body"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-vdet')">Cerrar</button>
+      <button class="btn btn-indigo" onclick="imprimirTicketById(currentVentaId)">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ticket post-venta -->
+<div class="modal-bg" id="modal-ticket">
+  <div class="modal" style="max-width:360px;padding:0;overflow:hidden;border-radius:16px">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)">
+      <span style="font:700 13px var(--sans)">🧾 Ticket de venta</span>
+      <span id="ticket-folio-badge" class="badge badge-verde"></span>
+    </div>
+    <div class="ticket-preview" id="ticket-preview-body"></div>
+    <div class="ticket-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-ticket');focusBarcode()">✕ Nueva venta</button>
+      <button class="btn btn-indigo" style="flex:2" onclick="imprimirTicketActual()">🖨 Imprimir ticket</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══ MODAL: Clave de activación ═══ -->
+<div class="modal-bg" id="modal-licencia">
+  <div class="modal" style="max-width:380px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2rem;margin-bottom:6px">🔑</div>
+      <h3 style="margin:0">Activar licencia</h3>
+      <p style="font-size:12px;color:var(--txt2);margin-top:4px">Ingresa la clave que te proporcionó tu vendedor</p>
+    </div>
+    <div class="field">
+      <label>Clave de activación</label>
+      <input id="licencia-input" type="password" placeholder="••••••••"
+        style="text-align:center;font:700 1.2rem var(--mono);letter-spacing:4px"
+        onkeydown="if(event.key==='Enter')verificarLicencia()">
+    </div>
+    <div class="field">
+      <label>URL de validación (Apps Script)</label>
+      <input id="licencia-url" type="url" placeholder="https://script.google.com/macros/s/…/exec"
+        onkeydown="if(event.key==='Enter')verificarLicencia()">
+      <p style="font-size:11px;color:var(--txt2);margin-top:4px">Te la proporciona Omnia Technology junto con tu clave.</p>
+    </div>
+    <div id="licencia-error" style="display:none;background:var(--rojo-lt);color:var(--rojo);border-radius:8px;padding:10px;font-size:12px;margin-bottom:10px;text-align:center"></div>
+    <div id="licencia-loading" style="display:none;text-align:center;font-size:12px;color:var(--txt2);margin-bottom:10px">Verificando con el servidor…</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-licencia')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-verificar-lic" style="flex:2" onclick="verificarLicencia()">✅ Activar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  APPS SCRIPT CODE (for user to copy)
+// ══════════════════════════════════════════════════════════
+const APPS_SCRIPT_CODE = `
+// FarmaPos — Apps Script Backend
+// Pega este código en script.google.com y despliega como Web App
+
+const SS_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
+// ── LICENCIAS: se validan aquí, en el servidor, NUNCA en el cliente ──
+// Crea una hoja llamada "licencias" con columnas: clave | expiry (o vacío) | label | activa (TRUE/FALSE)
+function validarLicencia(clave) {
+  const sheet = getSheet('licencias');
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const iClave = headers.indexOf('clave');
+  const iExpiry = headers.indexOf('expiry');
+  const iLabel = headers.indexOf('label');
+  const iActiva = headers.indexOf('activa');
+  for (let i=1;i<rows.length;i++){
+    const r = rows[i];
+    if (String(r[iClave]).trim().toUpperCase() === String(clave).trim().toUpperCase()) {
+      if (r[iActiva] === false || r[iActiva] === 'FALSE') return {ok:false, error:'Clave revocada'};
+      const expiry = r[iExpiry];
+      if (expiry) {
+        const expDate = new Date(expiry + 'T23:59:59');
+        if (new Date() > expDate) return {ok:false, error:'Clave vencida', expiry};
+      }
+      return {ok:true, label:r[iLabel]||'', expiry: expiry||null};
+    }
+  }
+  return {ok:false, error:'Clave inválida'};
+}
+
+function doGet(e) {
+  const action = e.parameter.action || '';
+
+  if (action === 'ping') {
+    return json({ok:true, msg:'pong', ts:new Date().toISOString()});
+  }
+
+  if (action === 'verificar_licencia') {
+    const resultado = validarLicencia(e.parameter.clave || '');
+    return json(resultado);
+  }
+
+  const sheet = getSheet(e.parameter.sheet || 'productos');
+  if (action === 'get') {
+    const rows = sheet.getDataRange().getValues();
+    const headers = rows[0];
+    const data = rows.slice(1).map(r => Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
+    return json({ok:true, data});
+  }
+  return json({ok:false, error:'Unknown action'});
+}
+
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const {action, sheet: sheetName, data, id} = body;
+
+    if (action === 'verificar_licencia') {
+      const resultado = validarLicencia(body.clave || '');
+      return json(resultado);
+    }
+
+    const sheet = getSheet(sheetName || 'productos');
+    const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+
+    if (action === 'upsert') {
+      const rows = sheet.getDataRange().getValues();
+      // La hoja "config" usa 'key' como identificador único, no 'id'
+      const keyCol = sheetName === 'config' ? headers.indexOf('key') : headers.indexOf('id');
+      const keyVal = sheetName === 'config' ? data.key : data.id;
+      const existing = rows.findIndex((r,i)=> i>0 && keyCol>=0 && r[keyCol]===keyVal);
+      const row = headers.map(h => data[h] ?? '');
+      if (existing > 0) sheet.getRange(existing+1,1,1,row.length).setValues([row]);
+      else sheet.appendRow(row);
+      return json({ok:true});
+    }
+    if (action === 'delete') {
+      const rows = sheet.getDataRange().getValues();
+      const idCol = headers.indexOf('id');
+      const idx = rows.findIndex((r,i)=>i>0 && r[idCol]===id);
+      if (idx > 0) sheet.deleteRow(idx+1);
+      return json({ok:true});
+    }
+    // 'sync' = reemplazo completo de UNA hoja
+    if (action === 'sync') {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) sheet.deleteRows(2, lastRow-1);
+      (data||[]).forEach(d => sheet.appendRow(headers.map(h=>d[h]??'')));
+      return json({ok:true});
+    }
+    // 'sync_all' = varias hojas a la vez, una por cada clave del objeto data
+    if (action === 'sync_all') {
+      Object.keys(data||{}).forEach(sheetKey => {
+        const s = getSheet(sheetKey);
+        const h = s.getRange(1,1,1,s.getLastColumn()).getValues()[0];
+        const lastRow = s.getLastRow();
+        if (lastRow > 1) s.deleteRows(2, lastRow-1);
+        (data[sheetKey]||[]).forEach(d => s.appendRow(h.map(col=>d[col]??'')));
+      });
+      return json({ok:true});
+    }
+    return json({ok:false, error:'Unknown action'});
+  } catch(err) {
+    return json({ok:false, error:err.toString()});
+  }
+}
+
+function getSheet(name) {
+  const ss = SpreadsheetApp.openById(SS_ID);
+  let s = ss.getSheetByName(name);
+  if (!s) {
+    s = ss.insertSheet(name);
+    const headers = {
+      productos:   ['id','barcode','nombre','cat','proveedor','precio','costo','stock','stockmin','vence','unidad','desc'],
+      ventas:      ['id','folio','fecha','items','subtotal','descuento','total','recibido','cambio','metodo'],
+      movimientos: ['id','fecha','tipo','monto','concepto'],
+      config:      ['key','value'],
+      licencias:   ['clave','expiry','label','activa']
+    };
+    if (headers[name]) s.getRange(1,1,1,headers[name].length).setValues([headers[name]]);
+  }
+  return s;
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+`;
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+let db = { productos:[], ventas:[], movimientos:[], caja:{abierta:false,fondo:0,fechaApertura:null}, cortes:[] };
+let cfg = { url:'', nombre:'FarmaPos Demo', rfc:'', tel:'', dir:'', ticketAncho:'80' };
+let ticket = [];
+
+// ══════════════════════════════════════════════════════════
+//  CONTROL CENTRAL DE ACCESO — OMNIA TECHNOLOGY
+//  No confundir con cfg.url (esa es la hoja de DATOS del cliente).
+//  Esta URL la define Omnia una sola vez al compilar/entregar la app;
+//  el cliente nunca la ve ni la puede editar desde la interfaz.
+// ══════════════════════════════════════════════════════════
+const OMNIA_CONTROL_URL = ''; // ← Omnia: pega aquí la URL /exec del script central antes de entregar la app
+const OMNIA_APP_NAME    = 'farmapos';
+const OMNIA_APP_VERSION = 'pro'; // 'demo' en la versión demo
+
+function omniaDeviceId() {
+  let id = localStorage.getItem('omnia_device_id');
+  if (!id) {
+    id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10);
+    try { localStorage.setItem('omnia_device_id', id); } catch(e){}
+  }
+  return id;
+}
+
+function omniaShowGate(icon, title, msg, badge, mostrarForm) {
+  document.getElementById('og-icon').textContent = icon;
+  document.getElementById('og-title').textContent = title;
+  document.getElementById('og-msg').textContent = msg;
+  const b = document.getElementById('og-badge');
+  if (badge) { b.textContent = badge; b.style.display = 'inline-block'; } else { b.style.display = 'none'; }
+  document.getElementById('og-contacto-form').style.display = mostrarForm ? 'block' : 'none';
+  document.getElementById('omnia-gate').classList.add('show');
+}
+function omniaHideGate() {
+  document.getElementById('omnia-gate').classList.remove('show');
+}
+
+async function enviarContactoOmnia() {
+  const nombre = document.getElementById('og-nombre').value.trim();
+  const telefono = document.getElementById('og-telefono').value.trim();
+  const email = document.getElementById('og-email').value.trim();
+  const errEl = document.getElementById('og-contacto-error');
+  const btn = document.getElementById('og-contacto-btn');
+  errEl.style.display = 'none';
+
+  if (!nombre || !telefono) {
+    errEl.textContent = 'El nombre del negocio y el WhatsApp son obligatorios.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    const r = await fetch(OMNIA_CONTROL_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        action:'actualizar_contacto', app:OMNIA_APP_NAME, device_id:omniaDeviceId(),
+        nombre_negocio:nombre, telefono, email
+      })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      cfg.nombre = nombre; saveCfg();
+      omniaShowGate('✅','¡Listo!', 'Recibimos tus datos. Omnia Technology te contactará por WhatsApp para activar tu acceso.', 'PENDIENTE DE ACTIVACIÓN', false);
+    } else {
+      errEl.textContent = j.error || 'No se pudo enviar. Intenta de nuevo.';
+      errEl.style.display = 'block';
+    }
+  } catch(e) {
+    errEl.textContent = 'Sin conexión. Verifica tu internet e intenta de nuevo.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '📩 Enviar mis datos';
+  }
+}
+
+async function verificarAccesoOmnia() {
+  // Si Omnia no ha configurado la URL central todavía, no bloquea (útil en desarrollo)
+  if (!OMNIA_CONTROL_URL) { omniaHideGate(); return true; }
+
+  const deviceId = omniaDeviceId();
+  const params = new URLSearchParams({
+    action:'check', app:OMNIA_APP_NAME, version:OMNIA_APP_VERSION, device_id:deviceId,
+    nombre_negocio: cfg.nombre||'', _: Date.now()
+  });
+
+  try {
+    const r = await fetch(`${OMNIA_CONTROL_URL}?${params.toString()}`);
+    const j = await r.json();
+    localStorage.setItem('omnia_last_check_ok', JSON.stringify({ts:Date.now(), estado:j.estado}));
+
+    if (j.estado === 'activo') { omniaHideGate(); return true; }
+    if (j.estado === 'pendiente') {
+      if (!j.tieneContacto) {
+        omniaShowGate('⏳','Solicita tu acceso', 'Déjanos tus datos y Omnia Technology activará tu acceso a la brevedad.', 'PENDIENTE', true);
+      } else {
+        omniaShowGate('⏳','Solicitud recibida', j.mensaje || 'Tu demo está en revisión. Omnia Technology te contactará pronto.', 'PENDIENTE DE ACTIVACIÓN', false);
+      }
+      return false;
+    }
+    if (j.estado === 'bloqueado') {
+      omniaShowGate('🚫','Acceso suspendido', j.mensaje || 'Contacta a Omnia Technology para más información.', 'BLOQUEADO', false);
+      return false;
+    }
+    if (j.estado === 'vencido') {
+      omniaShowGate('⏰','Acceso vencido', j.mensaje || 'Tu periodo venció. Contacta a Omnia Technology para renovarlo.', 'VENCIDO', false);
+      return false;
+    }
+    omniaShowGate('❓','No se pudo verificar el acceso', 'Contacta a Omnia Technology.', '', false);
+    return false;
+  } catch (e) {
+    // Sin conexión al servidor central: se da un margen de gracia usando la
+    // última verificación exitosa, para no dejar al cliente sin trabajar por
+    // un problema de red que no es culpa suya.
+    const raw = localStorage.getItem('omnia_last_check_ok');
+    if (raw) {
+      const last = JSON.parse(raw);
+      const horas = (Date.now() - last.ts) / 3600000;
+      if (last.estado === 'activo' && horas < 72) { omniaHideGate(); return true; }
+    }
+    omniaShowGate('📡','Sin conexión con el servidor de licencias', 'Conéctate a internet para verificar tu acceso.', '', false);
+    return false;
+  }
+}
+
+
+
+let editProdId = null;
+let syncing = false;
+
+// ── LICENCIA ──────────────────────────────────────────────────────────────────
+// IMPORTANTE: las claves YA NO viven aquí. Antes estaban hardcodeadas en este
+// archivo, lo cual significa que cualquiera con "Ver código fuente" podía leerlas
+// y activar PRO sin pagar. Ahora la validación ocurre en el Apps Script (backend),
+// contra la hoja "licencias" de tu Google Sheet. Ver validarLicencia() más arriba
+// en APPS_SCRIPT_CODE. Esto requiere que cfg.url (la URL del Apps Script) esté
+// configurada — si el cliente aún no tiene Sheets conectado, no puede activar PRO
+// hasta que el distribuidor (Omnia Technology) le entregue la URL junto con la clave.
+let modoProActivo = false;
+let licenciaUrl = ''; // se pide una vez y se guarda junto con la clave, ver verificarLicencia()
+
+// ══════════════════════════════════════════════════════════
+//  PERSIST
+// ══════════════════════════════════════════════════════════
+function save() {
+  try { localStorage.setItem('fp2_db', JSON.stringify(db)); }
+  catch(e) { console.error('No se pudo guardar localmente:', e); toast('⚠️ No se pudo guardar localmente (¿modo incógnito o memoria llena?)','warn'); }
+}
+function saveCfg() {
+  try { localStorage.setItem('fp2_cfg', JSON.stringify(cfg)); }
+  catch(e) { console.error('No se pudo guardar configuración:', e); }
+}
+function guardarAnchoTicket() {
+  cfg.ticketAncho = document.getElementById('cfg-ticket-ancho').value;
+  saveCfg();
+  toast('Ancho de ticket actualizado ✓');
+}
+function load() {
+  try {
+    const d = localStorage.getItem('fp2_db');
+    const c = localStorage.getItem('fp2_cfg');
+    if (d) db  = JSON.parse(d);
+    if (c) cfg = { ...cfg, ...JSON.parse(c) };
+  } catch(e) {
+    console.error('Datos locales corruptos, se reinicia el almacenamiento:', e);
+    localStorage.removeItem('fp2_db');
+    localStorage.removeItem('fp2_cfg');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════════
+const mxn = n => '$' + (+n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6).toUpperCase();
+const hoy = () => new Date().toISOString().slice(0,10);
+function getCats(){ return [...new Set(db.productos.map(p=>p.cat).filter(Boolean))].sort(); }
+function isExpiringSoon(d){ if(!d)return false; return (new Date(d)-new Date())/(86400000)<60; }
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+async function initApp() {
+  load();
+  if (!db.productos.length) loadDemoData();
+  cfg.nombre = cfg.nombre || 'FarmaPos Demo';
+
+  omniaShowGate('⏳','Verificando acceso…','Un momento por favor.');
+  const permitido = await verificarAccesoOmnia();
+  if (!permitido) return; // se queda en la pantalla de bloqueo/pendiente
+
+  updateBadge();
+  setSyncState('idle');
+  renderPosGrid();
+  renderInv();
+  renderCaja();
+  renderReportes();
+  if (db.caja.abierta) { document.getElementById('caja-closed').style.display='none'; document.getElementById('caja-open').style.display='block'; }
+  document.getElementById('cfg-nombre').value = cfg.nombre||'';
+  document.getElementById('cfg-rfc').value    = cfg.rfc||'';
+  document.getElementById('cfg-tel').value    = cfg.tel||'';
+  document.getElementById('cfg-dir').value    = cfg.dir||'';
+  const ta = document.getElementById('cfg-ticket-ancho');
+  if (ta) ta.value = cfg.ticketAncho || '80';
+  verificarSesionGuardada();
+  document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
+  setTimeout(()=>document.getElementById('pos-barcode').focus(), 300);
+}
+initApp();
+
+// ══════════════════════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════════════════════
+function showView(v, el) {
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.dnav-btn,.bnav-btn').forEach(b=>b.classList.remove('active'));
+  if (el) {
+    el.classList.add('active');
+    // sync both navs
+    const idx = [...document.querySelectorAll('.dnav-btn')].indexOf(el);
+    const mIdx = [...document.querySelectorAll('.bnav-btn')].indexOf(el);
+    if (idx>=0) document.querySelectorAll('.bnav-btn')[idx]?.classList.add('active');
+    if (mIdx>=0) document.querySelectorAll('.dnav-btn')[mIdx]?.classList.add('active');
+  }
+  if (v==='pos') { renderPosGrid(); setTimeout(()=>document.getElementById('pos-barcode').focus(),100); }
+  if (v==='inventario') renderInv();
+  if (v==='caja') renderCaja();
+  if (v==='reportes') renderReportes();
+}
+
+function showTab(id, el) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  [...panel.parentElement.children].forEach(s=>{ if(s.id && !s.classList.contains('tabs')) s.style.display='none'; });
+  panel.style.display='block';
+  el.closest('.tabs').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if (id==='r-ventas') renderHistorial();
+  if (id==='r-top') renderTop();
+  if (id==='r-cortes') renderCortes();
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ══════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════
+let toastT;
+function toast(msg, type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show '+type;
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ══════════════════════════════════════════════════════════
+//  SYNC STATE
+// ══════════════════════════════════════════════════════════
+function setSyncState(state, msg){
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (dot) { dot.className = state==='syncing'?'syncing':state==='ok'?'ok':state==='error'?'error':''; }
+  if (lbl) { lbl.textContent = msg||(state==='ok'?'Sincronizado':state==='error'?'Error sync':state==='syncing'?'Sincronizando…':'Sin conectar'); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  GOOGLE SHEETS API
+// ══════════════════════════════════════════════════════════
+async function sheetsGet(sheet) {
+  if (!cfg.url) return null;
+  try {
+    const r = await fetch(`${cfg.url}?action=get&sheet=${sheet}&_=${Date.now()}`);
+    const j = await r.json();
+    return j.ok ? j.data : null;
+  } catch(e) { console.error('sheetsGet',e); return null; }
+}
+
+async function sheetsPost(body) {
+  if (!cfg.url) return false;
+  try {
+    const r = await fetch(cfg.url, {
+      method:'POST',
+      body: JSON.stringify(body),
+      headers:{'Content-Type':'text/plain'}   // Apps Script requiere text/plain para evitar preflight CORS
+    });
+    const text = await r.text();
+    const j = JSON.parse(text);
+    return j.ok;
+  } catch(e) { console.error('sheetsPost',e); return false; }
+}
+
+// Sincronización ligera: sube solo el registro que cambió (upsert/delete de
+// una fila), a diferencia de syncNow()/sync_all que resube las hojas
+// completas. No se espera desde el flujo de venta para no bloquear la UI.
+async function sheetsUpsert(sheet, data) { return sheetsPost({action:'upsert', sheet, data}); }
+async function sheetsDelete(sheet, id) { return sheetsPost({action:'delete', sheet, id}); }
+
+function saveAndSyncFast(sheet, data) {
+  save();
+  if (!cfg.url) return;
+  setSyncState('syncing');
+  sheetsUpsert(sheet, data)
+    .then(ok => setSyncState(ok ? 'ok' : 'error'))
+    .catch(() => setSyncState('error'));
+}
+function saveAndDeleteFast(sheet, id) {
+  save();
+  if (!cfg.url) return;
+  setSyncState('syncing');
+  sheetsDelete(sheet, id)
+    .then(ok => setSyncState(ok ? 'ok' : 'error'))
+    .catch(() => setSyncState('error'));
+}
+
+async function syncNow() {
+  if (!cfg.url) { toast('Configura la URL del Apps Script primero','warn'); return; }
+  setSyncState('syncing');
+  try {
+    const success = await sheetsPost({
+      action: 'sync_all',
+      data: {
+        productos:   db.productos,
+        ventas:      db.ventas,
+        movimientos: db.movimientos,
+        cortes:      db.cortes,
+      }
+    });
+    setSyncState(success ? 'ok' : 'error');
+    toast(success ? 'Sincronizado con Google Sheets ✓' : 'Error al sincronizar — revisa la URL', success?'ok':'err');
+  } catch(e) {
+    setSyncState('error');
+    toast('Error de conexión: ' + e.message, 'err');
+  }
+}
+
+async function testConexion() {
+  if (!cfg.url) { toast('Ingresa la URL primero','warn'); return; }
+  setSyncState('syncing','Probando…');
+  try {
+    const r = await fetch(`${cfg.url}?action=ping&_=${Date.now()}`);
+    const text = await r.text();
+    const j = JSON.parse(text);
+    if (j.ok) {
+      setSyncState('ok','Conectado');
+      toast('Conexión exitosa con Google Sheets ✓');
+      updateSheetsStatusBox(true);
+      // Cargar config guardada en Sheets
+      cargarConfigDesdeSheets();
+    } else throw new Error(j.error||'Respuesta inválida');
+  } catch(e) {
+    setSyncState('error','Error');
+    toast('No se pudo conectar: ' + e.message, 'err');
+    updateSheetsStatusBox(false);
+  }
+}
+
+async function cargarConfigDesdeSheets() {
+  // La tabla config en Sheets guarda ajustes clave-valor del negocio
+  // key: nombre_farmacia, rfc, telefono, direccion, ultimo_folio, etc.
+  // Esto permite que si el cliente reinstala la app, recupere su configuración
+  try {
+    const data = await sheetsGet('config');
+    if (!data) return;
+    data.forEach(row => {
+      if (row.key === 'nombre_farmacia') cfg.nombre = row.value;
+      if (row.key === 'rfc')             cfg.rfc    = row.value;
+      if (row.key === 'telefono')        cfg.tel    = row.value;
+      if (row.key === 'direccion')       cfg.dir    = row.value;
+    });
+    saveCfg();
+    // Actualizar campos en UI si están visibles
+    const n = document.getElementById('cfg-nombre-pro');
+    if (n) { n.value = cfg.nombre||'';}
+    const r = document.getElementById('cfg-rfc-pro');
+    if (r) { r.value = cfg.rfc||'';}
+    const t = document.getElementById('cfg-tel-pro');
+    if (t) { t.value = cfg.tel||'';}
+    const d = document.getElementById('cfg-dir-pro');
+    if (d) { d.value = cfg.dir||'';}
+  } catch(e) { console.warn('cargarConfig',e); }
+}
+
+function updateSheetsStatusBox(ok) {
+  const box = document.getElementById('sheets-status-box');
+  const dot = document.getElementById('sheets-dot');
+  const txt = document.getElementById('sheets-txt');
+  if (!box) return;
+  box.className = 'sheets-status ' + (ok?'connected':'error');
+  dot.textContent = ok ? '🟢' : '🔴';
+  txt.textContent = ok ? 'Conectado — datos sincronizados con Google Sheets' : 'Error de conexión — revisa la URL y permisos';
+}
+
+async function saveAndSync() {
+  save();
+  if (cfg.url && !syncing) {
+    syncing = true;
+    setSyncState('syncing');
+    await syncNow();
+    syncing = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  BRANDING — Logo y personalización
+// ══════════════════════════════════════════════════════════
+function previewLogo() {
+  const input = document.getElementById('cfg-logo-file');
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result;
+    cfg.logo = base64;
+    const preview = document.getElementById('logo-preview');
+    preview.innerHTML = `<img src="${base64}" style="max-width:100%;max-height:100%;object-fit:contain">`;
+    document.getElementById('ticket-logo-preview').innerHTML = `<img src="${base64}" style="max-height:40px;object-fit:contain">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function limpiarLogo() {
+  cfg.logo = '';
+  document.getElementById('cfg-logo-file').value = '';
+  document.getElementById('logo-preview').innerHTML = '📷';
+  document.getElementById('ticket-logo-preview').innerHTML = '---logo---';
+  saveCfg();
+  toast('Logo removido');
+}
+function guardarBranding() {
+  const nombre = document.getElementById('cfg-nombre-pro').value.trim();
+  const rfc = document.getElementById('cfg-rfc-pro').value.trim();
+  cfg.nombre = nombre;
+  cfg.rfc = rfc;
+  saveCfg();
+  document.getElementById('ticket-nombre-preview').textContent = nombre || 'Farmacia San Juan';
+  document.getElementById('ticket-rfc-preview').textContent = rfc ? `RFC: ${rfc}` : 'RFC: ---';
+  toast('✅ Branding guardado');
+}
+
+// ══════════════════════════════════════════════════════════
+//  DISPOSITIVOS — Escáner + Impresora Térmica
+// ══════════════════════════════════════════════════════════
+let escanerConectado = false;
+let impresoraConectada = false;
+let dispositivoBluetooth = null;
+let caracteristicaBluetooth = null;
+
+function actualizarEstadoEscaner() {
+  const dot = document.getElementById('escaner-dot');
+  const txt = document.getElementById('escaner-txt');
+  if (escanerConectado) {
+    dot.style.background = '#22c55e';
+    txt.textContent = '✅ Conectado (emulación de teclado)';
+  } else {
+    dot.style.background = '#ccc';
+    txt.textContent = 'No conectado';
+  }
+}
+
+function actualizarEstadoImpresora() {
+  const dot = document.getElementById('impresora-dot');
+  const txt = document.getElementById('impresora-txt');
+  if (impresoraConectada) {
+    dot.style.background = '#22c55e';
+    txt.textContent = '✅ Conectada';
+  } else {
+    dot.style.background = '#ccc';
+    txt.textContent = 'No configurada';
+  }
+}
+
+async function detectarEscaner() {
+  const btn = document.getElementById('btn-escaner-detectar');
+  btn.disabled = true;
+  btn.textContent = 'Buscando dispositivos...';
+  
+  try {
+    if (!navigator.bluetooth) {
+      toast('⚠️ Tu navegador no soporta Bluetooth Web API. Usa Chrome, Edge o Firefox reciente.', 'warn');
+      toast('💡 Los escáneres USB funcionan automáticamente sin configuración.', 'info');
+      btn.disabled = false;
+      btn.textContent = '🔍 Detectar Bluetooth';
+      return;
+    }
+
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [
+        { namePrefix: 'Scanner' },
+        { namePrefix: 'Barcode' },
+        { namePrefix: 'Symbol' },
+        { namePrefix: 'Zebra' },
+      ],
+      optionalServices: ['0000180a-0000-1000-8000-00805f9b34fb']
+    });
+
+    const server = await device.gatt.connect();
+    toast(`✅ Dispositivo encontrado: ${device.name || 'Escáner Bluetooth'}`);
+    escanerConectado = true;
+    dispositivoBluetooth = device;
+    actualizarEstadoEscaner();
+    document.getElementById('btn-escaner-test').style.display = 'inline-block';
+    document.getElementById('escaner-test-box').style.display = 'block';
+  } catch (e) {
+    if (e.name !== 'NotFoundError') {
+      toast('⚠️ No se encontraron dispositivos Bluetooth. ' + (e.message || ''), 'warn');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Detectar Bluetooth';
+  }
+}
+
+function testEscaner() {
+  const input = document.getElementById('escaner-test-input');
+  const result = document.getElementById('escaner-test-result');
+  
+  input.focus();
+  result.textContent = '👂 Esperando escaneo... (escanea un código)';
+  result.style.color = 'var(--indigo)';
+  
+  const handler = () => {
+    const valor = input.value.trim();
+    if (valor) {
+      result.textContent = `✅ Código detectado: ${valor}`;
+      result.style.color = 'var(--verde)';
+      setTimeout(() => {
+        input.value = '';
+        input.focus();
+        result.textContent = '👂 Esperando escaneo...';
+        result.style.color = 'var(--indigo)';
+      }, 2000);
+    }
+    input.value = '';
+  };
+  
+  input.onkeyup = handler;
+}
+
+async function detectarImpresora() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Detectando...';
+  
+  try {
+    // Intentar conectar via USB HID (Chrome/Edge)
+    if (navigator.usb) {
+      const devices = await navigator.usb.getDevices();
+      const impresoras = devices.filter(d => {
+        // Buscar dispositivos de impresora típicos
+        return d.productName?.includes('Printer') || 
+               d.productName?.includes('Thermal') ||
+               (d.vendorId === 0x0483 || d.vendorId === 0x04b8); // Epson, Seiko
+      });
+      if (impresoras.length > 0) {
+        impresoraConectada = true;
+        actualizarEstadoImpresora();
+        toast(`✅ Impresora detectada: ${impresoras[0].productName || 'Impresora Térmica'}`);
+        return;
+      }
+    }
+    
+    // Fallback: verificar IP WiFi si la escribió
+    const ip = document.getElementById('cfg-impresora-ip').value.trim();
+    if (ip) {
+      // Ping simple para verificar disponibilidad
+      const response = await fetch(`http://${ip}:9100/`, {timeout: 2000}).catch(()=>null);
+      if (response) {
+        impresoraConectada = true;
+        actualizarEstadoImpresora();
+        toast(`✅ Impresora WiFi encontrada en ${ip}`);
+        return;
+      }
+    }
+    
+    toast('⚠️ No se encontraron impresoras. Verifica que esté encendida y emparejada.', 'warn');
+    toast('💡 También puedes escribir la IP de tu impresora WiFi arriba.', 'info');
+  } catch (e) {
+    toast('⚠️ ' + (e.message || 'No se pudo detectar impresora'), 'warn');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Detectar impresora';
+  }
+}
+
+function impresionPrueba() {
+  if (!impresoraConectada) {
+    toast('⚠️ Primero conecta una impresora', 'warn');
+    return;
+  }
+
+  // Simular impresión de prueba — usa exactamente el mismo formato que un
+  // ticket real (imprimirVenta) para que la prueba sea representativa.
+  const ticketPrueba = {
+    folio: 'TEST-001',
+    fecha: new Date().toISOString(),
+    items: [{nombre: 'Producto Test', qty: 1, precio: 100, costo: 0, unidad: 'pza'}],
+    subtotal: 100,
+    descuento: 0,
+    total: 100,
+    recibido: 100,
+    cambio: 0,
+    metodo: 'efectivo',
+  };
+  imprimirVenta(ticketPrueba);
+
+  toast('🖨️ Impresión de prueba enviada. Si no aparece, verifica que la impresora esté encendida.');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════
+function guardarConfig() {
+  cfg.url = document.getElementById('cfg-url').value.trim();
+  saveCfg();
+  testConexion();
+}
+
+async function guardarConfigEnSheets() {
+  // Guarda los datos del negocio en la tabla config de Sheets
+  // para que persistan aunque el cliente borre el localStorage
+  const pairs = [
+    {key:'nombre_farmacia', value:cfg.nombre},
+    {key:'rfc',             value:cfg.rfc},
+    {key:'telefono',        value:cfg.tel},
+    {key:'direccion',       value:cfg.dir},
+    {key:'version',         value:'2.0'},
+    {key:'ultima_actualizacion', value:new Date().toISOString()},
+  ];
+  for (const p of pairs) {
+    await sheetsPost({action:'upsert', sheet:'config', data:p});
+  }
+}
+
+function guardarNegocio() {
+  // Demo panel inputs
+  cfg.nombre = document.getElementById('cfg-nombre').value.trim();
+  cfg.rfc    = document.getElementById('cfg-rfc').value.trim();
+  cfg.tel    = document.getElementById('cfg-tel').value.trim();
+  cfg.dir    = document.getElementById('cfg-dir').value.trim();
+  saveCfg();
+  toast('Datos del negocio guardados ✓ — Se verán reflejados en tus tickets');
+}
+
+function guardarNegocioPro() {
+  // Pro panel inputs (mirrors to cfg)
+  cfg.nombre = document.getElementById('cfg-nombre-pro').value.trim();
+  cfg.rfc    = document.getElementById('cfg-rfc-pro').value.trim();
+  cfg.tel    = document.getElementById('cfg-tel-pro').value.trim();
+  cfg.dir    = document.getElementById('cfg-dir-pro').value.trim();
+  // Also sync demo panel
+  document.getElementById('cfg-nombre').value = cfg.nombre;
+  document.getElementById('cfg-rfc').value    = cfg.rfc;
+  document.getElementById('cfg-tel').value    = cfg.tel;
+  document.getElementById('cfg-dir').value    = cfg.dir;
+  saveCfg();
+  toast('Datos guardados ✓');
+}
+
+// ── LICENCIA ──────────────────────────────────────────────────────────────────
+// La validación ahora ocurre en el servidor (Apps Script → hoja "licencias").
+// El cliente nunca conoce el conjunto de claves válidas, solo envía la que el
+// usuario escribió y confía en la respuesta ok:true/false del backend.
+async function verificarLicencia() {
+  const input   = document.getElementById('licencia-input').value.trim();
+  const url     = document.getElementById('licencia-url').value.trim();
+  const errEl   = document.getElementById('licencia-error');
+  const loadEl  = document.getElementById('licencia-loading');
+  const btn     = document.getElementById('btn-verificar-lic');
+  errEl.style.display = 'none';
+
+  if (!input) { errEl.textContent = 'Escribe tu clave de activación.'; errEl.style.display='block'; return; }
+  if (!url)   { errEl.textContent = 'Falta la URL de validación que te dio Omnia Technology.'; errEl.style.display='block'; return; }
+
+  btn.disabled = true;
+  loadEl.style.display = 'block';
+  try {
+    const r = await fetch(`${url}?action=verificar_licencia&clave=${encodeURIComponent(input)}&_=${Date.now()}`);
+    const j = await r.json();
+    if (!j.ok) {
+      errEl.textContent = '❌ ' + (j.error==='Clave vencida'
+        ? `Esta clave venció${j.expiry?' el '+new Date(j.expiry+'T23:59:59').toLocaleDateString('es-MX'):''}. Contacta a tu proveedor para renovarla.`
+        : 'Clave inválida. Verifica que la escribiste correctamente.');
+      errEl.style.display = 'block';
+      document.getElementById('licencia-input').value = '';
+      return;
+    }
+
+    localStorage.setItem('fp2_pro_session', JSON.stringify({
+      clave: input, label: j.label, expiry: j.expiry, url, activadoEn: new Date().toISOString()
+    }));
+    cfg.url = url; saveCfg();
+
+    closeModal('modal-licencia');
+    document.getElementById('licencia-input').value = '';
+    activarModoPro(j);
+    toast('Licencia activada — Bienvenido ✓');
+  } catch(e) {
+    errEl.textContent = '⚠️ No se pudo contactar al servidor de validación. Revisa tu conexión o la URL.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    loadEl.style.display = 'none';
+  }
+}
+
+async function verificarSesionGuardada() {
+  const raw = localStorage.getItem('fp2_pro_session');
+  if (!raw) return;
+  let sesion;
+  try { sesion = JSON.parse(raw); } catch(e) { localStorage.removeItem('fp2_pro_session'); return; }
+  if (!sesion.url) { localStorage.removeItem('fp2_pro_session'); return; }
+  try {
+    const r = await fetch(`${sesion.url}?action=verificar_licencia&clave=${encodeURIComponent(sesion.clave)}&_=${Date.now()}`);
+    const j = await r.json();
+    if (!j.ok) {
+      localStorage.removeItem('fp2_pro_session');
+      toast(j.error==='Clave vencida' ? 'Tu licencia PRO venció. Renuévala con tu proveedor.' : 'Tu acceso PRO fue revocado. Contacta a tu proveedor.', 'warn');
+      return;
+    }
+    activarModoPro(j);
+  } catch(e) {
+    // Sin conexión: permite seguir trabajando en modo PRO offline con la última sesión válida conocida,
+    // pero no renueva la validación hasta que vuelva a haber red.
+    activarModoPro({label:sesion.label, expiry:sesion.expiry});
+  }
+}
+
+function activarModoPro(lic, sesion) {
+  modoProActivo = true;
+  // Ocultar demo panel, mostrar pro panel
+  document.getElementById('cfg-demo-panel').style.display = 'none';
+  document.getElementById('cfg-pro-panel').style.display  = 'block';
+  // Ocultar banner demo
+  const banner = document.getElementById('demo-banner');
+  if (banner) banner.style.display = 'none';
+  // Rellenar campos pro con datos actuales
+  document.getElementById('cfg-nombre-pro').value = cfg.nombre || '';
+  document.getElementById('cfg-rfc-pro').value    = cfg.rfc    || '';
+  document.getElementById('cfg-tel-pro').value    = cfg.tel    || '';
+  document.getElementById('cfg-dir-pro').value    = cfg.dir    || '';
+  // Cargar logo si existe
+  if (cfg.logo) {
+    document.getElementById('logo-preview').innerHTML = `<img src="${cfg.logo}" style="max-width:100%;max-height:100%;object-fit:contain">`;
+    document.getElementById('ticket-logo-preview').innerHTML = `<img src="${cfg.logo}" style="max-height:40px;object-fit:contain">`;
+  }
+  document.getElementById('ticket-nombre-preview').textContent = cfg.nombre || 'Farmacia San Juan';
+  document.getElementById('ticket-rfc-preview').textContent = cfg.rfc ? `RFC: ${cfg.rfc}` : 'RFC: ---';
+  // Badge de vencimiento
+  const badge = document.getElementById('pro-expiry-badge');
+  if (lic.expiry) {
+    const dias = Math.ceil((new Date(lic.expiry+'T23:59:59') - new Date()) / 86400000);
+    badge.textContent = `Vence en ${dias} días`;
+    badge.className = 'badge ' + (dias < 10 ? 'badge-amber' : 'badge-verde');
+  } else {
+    badge.textContent = 'Licencia permanente';
+    badge.className = 'badge badge-verde';
+  }
+  // Restaurar config de Sheets si existe
+  if (cfg.url) {
+    document.getElementById('cfg-url').value = cfg.url;
+    testConexion();
+  }
+}
+
+function cerrarSesionPro() {
+  if (!confirm('¿Cerrar sesión PRO? Volverás al modo demo.')) return;
+  localStorage.removeItem('fp2_pro_session');
+  modoProActivo = false;
+  document.getElementById('cfg-demo-panel').style.display = 'block';
+  document.getElementById('cfg-pro-panel').style.display  = 'none';
+  document.getElementById('demo-banner').style.display    = 'flex';
+  toast('Sesión PRO cerrada', 'warn');
+}
+
+function copyScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(()=>toast('Código copiado al portapapeles ✓'));
+}
+
+// ══════════════════════════════════════════════════════════
+//  BADGE
+// ══════════════════════════════════════════════════════════
+function updateBadge() {
+  const h = hoy();
+  const bal = db.movimientos.filter(m=>m.fecha.startsWith(h))
+    .reduce((s,m)=>m.tipo==='ingreso'?s+m.monto:s-m.monto, 0);
+  const saldo = db.caja.fondo + bal;
+  document.getElementById('badge-saldo').textContent = mxn(saldo);
+}
+
+// ══════════════════════════════════════════════════════════
+//  INVENTARIO
+// ══════════════════════════════════════════════════════════
+function openProdModal(bc='') {
+  editProdId = null;
+  document.getElementById('mprod-title').textContent = '➕ Nuevo producto';
+  ['p-bc','p-nom','p-cat','p-prov','p-precio','p-costo','p-vence','p-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-stock').value = 0;
+  document.getElementById('p-smin').value = 5;
+  document.getElementById('p-unidad').value = 'pza';
+  if (bc) document.getElementById('p-bc').value = bc;
+  refreshCatDl();
+  openModal('modal-prod');
+}
+
+function editProd(id) {
+  const p = db.productos.find(x=>x.id===id); if(!p)return;
+  editProdId = id;
+  document.getElementById('mprod-title').textContent = '✏️ Editar producto';
+  document.getElementById('p-bc').value    = p.barcode;
+  document.getElementById('p-nom').value   = p.nombre;
+  document.getElementById('p-cat').value   = p.cat||'';
+  document.getElementById('p-prov').value  = p.proveedor||'';
+  document.getElementById('p-precio').value= p.precio;
+  document.getElementById('p-costo').value = p.costo||'';
+  document.getElementById('p-stock').value = p.stock;
+  document.getElementById('p-smin').value  = p.stockmin??5;
+  document.getElementById('p-vence').value = p.vence||'';
+  document.getElementById('p-unidad').value= p.unidad||'pza';
+  document.getElementById('p-desc').value  = p.desc||'';
+  refreshCatDl();
+  openModal('modal-prod');
+}
+
+function refreshCatDl() {
+  document.getElementById('cat-dl').innerHTML = getCats().map(c=>`<option value="${c}">`).join('');
+  const poscat = document.getElementById('pos-cat');
+  const cur = poscat.value;
+  poscat.innerHTML = '<option value="">Todas</option>' + getCats().map(c=>`<option value="${c}">${c}</option>`).join('');
+  poscat.value = cur;
+  const invcat = document.getElementById('inv-cat-f');
+  const cur2 = invcat.value;
+  invcat.innerHTML = '<option value="">Todas las categorías</option>' + getCats().map(c=>`<option value="${c}">${c}</option>`).join('');
+  invcat.value = cur2;
+}
+
+async function guardarProducto() {
+  const bc    = document.getElementById('p-bc').value.trim();
+  const nom   = document.getElementById('p-nom').value.trim();
+  const precio= parseFloat(document.getElementById('p-precio').value);
+  const stock = parseInt(document.getElementById('p-stock').value);
+  if (!bc||!nom||isNaN(precio)||isNaN(stock)) { toast('Completa los campos obligatorios (*)','warn'); return; }
+  if (db.productos.find(p=>p.barcode===bc && p.id!==editProdId)) { toast('Ya existe un producto con ese código','err'); return; }
+
+  const data = {
+    barcode:bc, nombre:nom,
+    cat:     document.getElementById('p-cat').value.trim(),
+    proveedor:document.getElementById('p-prov').value.trim(),
+    precio, costo:parseFloat(document.getElementById('p-costo').value)||0,
+    stock, stockmin:parseInt(document.getElementById('p-smin').value)||5,
+    vence:   document.getElementById('p-vence').value,
+    unidad:  document.getElementById('p-unidad').value.trim()||'pza',
+    desc:    document.getElementById('p-desc').value.trim(),
+  };
+
+  if (editProdId) {
+    const i = db.productos.findIndex(p=>p.id===editProdId);
+    db.productos[i] = { ...db.productos[i], ...data };
+    toast('Producto actualizado ✓');
+  } else {
+    db.productos.push({ id:uid(), ...data });
+    toast('Producto agregado ✓');
+  }
+
+  closeModal('modal-prod');
+  const prodGuardado = editProdId
+    ? db.productos.find(p=>p.id===editProdId)
+    : db.productos[db.productos.length-1];
+  saveAndSyncFast('productos', prodGuardado);
+  renderInv();
+  renderPosGrid();
+}
+
+async function eliminarProd(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  db.productos = db.productos.filter(p=>p.id!==id);
+  saveAndDeleteFast('productos', id);
+  renderInv();
+  renderPosGrid();
+  toast('Producto eliminado','warn');
+}
+
+let escaneandoStock = false; // evita duplicar la suma de stock por doble Enter/clic
+
+async function invScan() {
+  if (escaneandoStock) return;
+  const bc  = document.getElementById('inv-bc').value.trim();
+  const qty = parseInt(document.getElementById('inv-qty').value)||1;
+  const msg = document.getElementById('inv-scan-msg');
+  if (!bc) { toast('Ingresa un código','warn'); return; }
+  const p = db.productos.find(x=>x.barcode===bc);
+  if (!p) {
+    msg.style.display='block'; msg.style.color='var(--amber)';
+    msg.textContent = `Código "${bc}" no encontrado — se abrirá el formulario para agregar.`;
+    document.getElementById('inv-bc').value='';
+    openProdModal(bc); return;
+  }
+  escaneandoStock = true;
+  try {
+    p.stock += qty;
+    msg.style.display='block'; msg.style.color='var(--verde)';
+    msg.innerHTML = `✅ <strong>${p.nombre}</strong> → stock: ${p.stock-qty} + ${qty} = <strong>${p.stock}</strong>`;
+    document.getElementById('inv-bc').value='';
+    document.getElementById('inv-qty').value=1;
+    saveAndSyncFast('productos', p);
+    renderInv();
+    toast(`+${qty} unidades a ${p.nombre}`);
+  } finally {
+    escaneandoStock = false;
+  }
+}
+
+function renderInv() {
+  const q    = document.getElementById('inv-q').value.toLowerCase();
+  const catF = document.getElementById('inv-cat-f').value;
+  const stkF = document.getElementById('inv-stk-f').value;
+  refreshCatDl();
+
+  const prods = db.productos.filter(p=>{
+    const mq = !q||(p.nombre.toLowerCase().includes(q)||p.barcode.includes(q));
+    const mc = !catF||p.cat===catF;
+    const ms = stkF==='bajo'?(p.stock>0&&p.stock<=(p.stockmin||5)):stkF==='cero'?p.stock<=0:true;
+    return mq&&mc&&ms;
+  });
+
+  document.getElementById('inv-n').textContent    = db.productos.length;
+  document.getElementById('inv-val').textContent  = mxn(db.productos.reduce((s,p)=>s+p.precio*p.stock,0));
+  document.getElementById('inv-bajo').textContent = db.productos.filter(p=>p.stock>0&&p.stock<=(p.stockmin||5)).length;
+  document.getElementById('inv-cero').textContent = db.productos.filter(p=>p.stock<=0).length;
+
+  const tbody = document.getElementById('inv-tbody');
+  if (!prods.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--txt2);padding:30px">Sin resultados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = prods.map(p=>{
+    const sc = p.stock<=0?'badge-rojo':p.stock<=(p.stockmin||5)?'badge-amber':'badge-verde';
+    const vb = p.vence ? `<span class="badge ${isExpiringSoon(p.vence)?'badge-amber':'badge-indigo'}">${p.vence}</span>` : '—';
+    return `<tr>
+      <td><span style="font:500 11px var(--mono)">${p.barcode}</span></td>
+      <td><strong>${p.nombre}</strong></td>
+      <td><span class="badge badge-indigo">${p.cat||'—'}</span></td>
+      <td style="font-family:var(--mono)">${mxn(p.precio)}</td>
+      <td style="font-family:var(--mono);color:var(--txt2)">${mxn(p.costo)}</td>
+      <td><span class="badge ${sc}">${p.stock} ${p.unidad||'pza'}</span></td>
+      <td>${vb}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="editProd('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarProd('${p.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function exportCSV() {
+  const cols = ['barcode','nombre','cat','proveedor','precio','costo','stock','stockmin','vence','unidad','desc'];
+  const rows = [cols.join(','), ...db.productos.map(p=>cols.map(c=>`"${p[c]??''}"`).join(','))];
+  const a = Object.assign(document.createElement('a'),{
+    href: URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'})),
+    download:`inventario_${hoy()}.csv`
+  });
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════
+//  POS GRID
+// ══════════════════════════════════════════════════════════
+function renderPosGrid() {
+  const q    = document.getElementById('pos-q').value.toLowerCase();
+  const catF = document.getElementById('pos-cat').value;
+  refreshCatDl();
+  const prods = db.productos.filter(p=>
+    (!q||(p.nombre.toLowerCase().includes(q)||p.barcode.includes(q))) &&
+    (!catF||p.cat===catF)
+  );
+  const grid = document.getElementById('pos-grid');
+  if (!prods.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--txt2);padding:40px 0">Sin productos</div>`;
+    return;
+  }
+  grid.innerHTML = prods.map(p=>{
+    const nostock = p.stock<=0;
+    const low = p.stock>0&&p.stock<=(p.stockmin||5);
+    const sc = nostock?'badge-rojo':low?'badge-amber':'badge-verde';
+    return `<div class="pg-card${nostock?' no-stock':''}" onclick="addToTicket('${p.barcode}')">
+      <div class="pg-code">${p.barcode}</div>
+      <div class="pg-name">${p.nombre}</div>
+      <div class="pg-foot">
+        <span class="pg-price">${mxn(p.precio)}</span>
+        <span class="badge ${sc}">${p.stock}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  TICKET
+// ══════════════════════════════════════════════════════════
+function posAddByBarcode() {
+  const bc = document.getElementById('pos-barcode').value.trim();
+  if (!bc) { openCobrar(); return; } // Enter con el campo vacío = ir a cobrar
+  const p = db.productos.find(x=>x.barcode===bc);
+  if (!p) toast(`Código "${bc}" no encontrado`,'err');
+  else { addToTicket(p.barcode); toast(`${p.nombre} agregado ✓`); }
+  document.getElementById('pos-barcode').value='';
+}
+
+function addToTicket(bc) {
+  const p = db.productos.find(x=>x.barcode===bc);
+  if (!p) return;
+  if (p.stock<=0) { toast(`Sin stock: ${p.nombre}`,'warn'); return; }
+  const ex = ticket.find(t=>t.barcode===bc);
+  if (ex) {
+    if (ex.qty>=p.stock) { toast(`Stock máximo: ${p.stock}`,'warn'); return; }
+    ex.qty++;
+  } else {
+    ticket.push({barcode:bc, nombre:p.nombre, precio:p.precio, costo:p.costo||0, qty:1, unidad:p.unidad||'pza'});
+  }
+  renderTicket();
+  focusBarcode(); // regresa el cursor al escáner aunque se haya agregado con el mouse
+}
+
+function changeQty(i, v) {
+  const qty = parseInt(v)||1;
+  const p = db.productos.find(x=>x.barcode===ticket[i].barcode);
+  ticket[i].qty = p ? Math.min(qty, p.stock) : qty;
+  ticket[i].qty = Math.max(1, ticket[i].qty);
+  renderTicket();
+}
+
+function removeTicket(i) { ticket.splice(i,1); renderTicket(); }
+function clearTicket() { ticket=[]; document.getElementById('pos-desc').value=0; renderTicket(); }
+
+function renderTicket() {
+  const rows = document.getElementById('ticket-rows');
+  const empty= document.getElementById('ticket-empty');
+  const foot = document.getElementById('ticket-footer');
+
+  if (!ticket.length) {
+    rows.innerHTML=''; empty.style.display='flex'; foot.style.display='none';
+    return;
+  }
+  empty.style.display='none'; foot.style.display='block';
+  rows.innerHTML = ticket.map((t,i)=>`
+    <div class="t-row">
+      <div class="t-name">
+        <strong>${t.nombre}</strong>
+        <small>${mxn(t.precio)} × ${t.qty}</small>
+      </div>
+      <div class="t-qty-wrap">
+        <button class="t-qty-btn" onclick="changeQty(${i},${t.qty-1})">−</button>
+        <input class="t-qty" type="number" value="${t.qty}" min="1" onchange="changeQty(${i},this.value)">
+        <button class="t-qty-btn" onclick="changeQty(${i},${t.qty+1})">+</button>
+      </div>
+      <div class="t-price">${mxn(t.precio*t.qty)}</div>
+      <button class="t-del" onclick="removeTicket(${i})">✕</button>
+    </div>`).join('');
+  renderTotals();
+}
+
+function getTotal() {
+  const sub  = ticket.reduce((s,t)=>s+t.precio*t.qty,0);
+  const desc = Math.min(100,Math.max(0,parseFloat(document.getElementById('pos-desc').value)||0));
+  return { sub, desc, total: sub*(1-desc/100) };
+}
+
+function renderTotals() {
+  const {sub,desc,total} = getTotal();
+  document.getElementById('t-sub').textContent   = mxn(sub);
+  document.getElementById('t-total').textContent = mxn(total);
+  const dr = document.getElementById('desc-row-disp');
+  if (desc>0) {
+    dr.style.display='flex';
+    document.getElementById('desc-label').textContent = `Descuento (${desc}%)`;
+    document.getElementById('t-desc').textContent = '−'+mxn(sub*desc/100);
+  } else dr.style.display='none';
+}
+
+// ══════════════════════════════════════════════════════════
+//  COBRAR
+// ══════════════════════════════════════════════════════════
+function openCobrar() {
+  if (!ticket.length) return;
+  if (!db.caja.abierta) { toast('Abre la caja primero','warn'); return; }
+  const {total} = getTotal();
+  document.getElementById('cobrar-total-num').textContent = mxn(total);
+  document.getElementById('cobrar-rec').value = '';
+  document.getElementById('cobrar-metodo').value = 'efectivo';
+  document.getElementById('cambio-box').className = 'cambio-box';
+  document.getElementById('cambio-num').textContent = '$0.00';
+  toggleEfectivo();
+  buildQuickAmts(total);
+  openModal('modal-cobrar');
+  setTimeout(()=>document.getElementById('cobrar-rec').focus(), 50);
+}
+
+function toggleEfectivo() {
+  const m = document.getElementById('cobrar-metodo').value;
+  document.getElementById('efectivo-ui').style.display = m==='efectivo'?'block':'none';
+}
+
+function buildQuickAmts(total) {
+  const amounts = [50,100,200,500,1000].filter(a=>a>=total);
+  const extra = [Math.ceil(total/10)*10, Math.ceil(total/50)*50, Math.ceil(total/100)*100];
+  const qa = [...new Set([...amounts,...extra])].filter(a=>a>=total).sort((a,b)=>a-b).slice(0,5);
+  document.getElementById('quick-amts').innerHTML = qa.map(a=>
+    `<button class="qa-btn" onclick="document.getElementById('cobrar-rec').value=${a};calcCambio()">${mxn(a).replace('$','$')}</button>`
+  ).join('');
+}
+
+function np(k) {
+  const inp = document.getElementById('cobrar-rec');
+  if (k==='⌫') inp.value=inp.value.slice(0,-1);
+  else inp.value+=k;
+  calcCambio();
+}
+
+function calcCambio() {
+  const {total} = getTotal();
+  const rec = parseFloat(document.getElementById('cobrar-rec').value)||0;
+  const cambio = rec - total;
+  const box = document.getElementById('cambio-box');
+  document.getElementById('cambio-num').textContent = mxn(Math.abs(cambio)) + (cambio<0?' (faltan)':'');
+  box.className = 'cambio-box'+(cambio<0?' neg':'');
+}
+
+let confirmandoVenta = false; // evita doble venta por doble clic mientras se procesa
+
+async function confirmarVenta() {
+  if (confirmandoVenta) return; // ya hay una venta en curso, ignora clics repetidos
+
+  const {sub,desc,total} = getTotal();
+  const metodo  = document.getElementById('cobrar-metodo').value;
+  const recibido= metodo==='efectivo' ? parseFloat(document.getElementById('cobrar-rec').value)||0 : total;
+  const cambio  = recibido - total;
+  if (metodo==='efectivo' && recibido<total) { toast('Pago insuficiente','err'); return; }
+  if (!ticket.length) { toast('El ticket está vacío','err'); return; }
+
+  // Re-validar stock en tiempo real: el inventario pudo cambiar desde que se
+  // agregó el producto al ticket (otra pestaña, otro cajero, edición manual).
+  for (const t of ticket) {
+    const p = db.productos.find(x=>x.barcode===t.barcode);
+    if (!p || p.stock < t.qty) {
+      toast(`Stock insuficiente de "${t.nombre}" — disponible: ${p?p.stock:0}`, 'err');
+      return;
+    }
+  }
+
+  confirmandoVenta = true;
+  const btnConfirmar = document.querySelector('#modal-cobrar .btn-primary');
+  if (btnConfirmar) btnConfirmar.disabled = true;
+
+  try {
+    // Descontar stock (solo se guardan/sincronizan los productos realmente afectados)
+    const afectados = new Map();
+    ticket.forEach(t=>{
+      const p = db.productos.find(x=>x.barcode===t.barcode);
+      if (p) { p.stock -= t.qty; afectados.set(p.id, p); }
+    });
+
+    const venta = {
+      id: uid(),
+      folio:'V-'+String(db.ventas.length+1).padStart(4,'0'),
+      fecha: new Date().toISOString(),
+      items: ticket.map(t=>({...t})),
+      subtotal:sub, descuento:desc, total, recibido, cambio, metodo,
+    };
+    db.ventas.push(venta);
+    const mov = {
+      id:uid(), fecha:new Date().toISOString(),
+      tipo:'ingreso', monto:total, concepto:`Venta ${venta.folio}`
+    };
+    db.movimientos.push(mov);
+
+    closeModal('modal-cobrar');
+    clearTicket();
+    renderInv();
+    renderPosGrid();
+    renderCaja();
+    updateBadge();
+
+    // Mostrar e imprimir el ticket YA (todavía dentro del gesto síncrono del
+    // clic), antes de esperar la sincronización con Sheets — así el navegador
+    // no bloquea la ventana de impresión como si fuera un popup no solicitado.
+    mostrarTicket(venta);
+
+    // Guardar local al instante y sincronizar en segundo plano solo lo que
+    // cambió (la venta, el movimiento de caja y los productos con stock
+    // afectado) en vez del sync_all completo — mucho más rápido.
+    save();
+    if (cfg.url) {
+      setSyncState('syncing');
+      Promise.all([
+        sheetsUpsert('ventas', venta),
+        sheetsUpsert('movimientos', mov),
+        ...[...afectados.values()].map(p => sheetsUpsert('productos', p)),
+      ]).then(results => setSyncState(results.every(Boolean) ? 'ok' : 'error'))
+        .catch(() => setSyncState('error'));
+    }
+  } finally {
+    confirmandoVenta = false;
+    if (btnConfirmar) btnConfirmar.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  TICKET DE IMPRESIÓN
+// ══════════════════════════════════════════════════════════
+let ticketActual = null;
+let currentVentaId = null;
+
+function buildTicketHTML(venta, paraImprimir = false) {
+  const negocio = cfg.nombre || 'Farmacia';
+  const dir   = cfg.dir  || '';
+  const tel   = cfg.tel  || '';
+  const rfc   = cfg.rfc  || '';
+  const fecha = new Date(venta.fecha);
+  const fStr  = fecha.toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const hStr  = fecha.toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'});
+  const sep   = '--------------------------------';
+
+  const metodoLabel = {efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia'}[venta.metodo]||venta.metodo;
+
+  const itemsHTML = venta.items.map(i => {
+    const tot = mxn(i.precio * i.qty);
+    const lin = `${i.qty} x ${mxn(i.precio)}`.padEnd(16);
+    if (paraImprimir) {
+      return `<div style="margin:3px 0"><div>${i.nombre}</div><div style="display:flex;justify-content:space-between"><span>${lin}</span><span>${tot}</span></div></div>`;
+    }
+    return `<div class="tk-row" style="margin:3px 0;flex-direction:column">
+      <span>${i.nombre}</span>
+      <div class="tk-row"><span style="color:#666">${i.qty} × ${mxn(i.precio)}</span><span>${tot}</span></div>
+    </div>`;
+  }).join('');
+
+  const descLine = venta.descuento > 0
+    ? (paraImprimir
+        ? `<div style="display:flex;justify-content:space-between"><span>Descuento ${venta.descuento}%</span><span>-${mxn(venta.subtotal*venta.descuento/100)}</span></div>`
+        : `<div class="tk-row"><span>Descuento (${venta.descuento}%)</span><span style="color:#dc2626">-${mxn(venta.subtotal*venta.descuento/100)}</span></div>`)
+    : '';
+
+  if (paraImprimir) {
+    return `
+      <div style="text-align:center;font-weight:700;font-size:15px;letter-spacing:1px;margin-bottom:2px">${negocio.toUpperCase()}</div>
+      ${dir ? `<div style="text-align:center;font-size:11px">${dir}</div>` : ''}
+      ${tel ? `<div style="text-align:center;font-size:11px">Tel: ${tel}</div>` : ''}
+      ${rfc ? `<div style="text-align:center;font-size:11px">RFC: ${rfc}</div>` : ''}
+      <div style="border-top:1px dashed #999;margin:6px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px"><span>Folio: <b>${venta.folio}</b></span><span>${fStr} ${hStr}</span></div>
+      <div style="border-top:1px dashed #999;margin:6px 0"></div>
+      ${itemsHTML}
+      <div style="border-top:1px dashed #999;margin:6px 0"></div>
+      <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>${mxn(venta.subtotal)}</span></div>
+      ${descLine}
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;margin:4px 0"><span>TOTAL</span><span>${mxn(venta.total)}</span></div>
+      <div style="border-top:1px dashed #999;margin:6px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span>Método</span><span>${metodoLabel}</span></div>
+      ${venta.metodo==='efectivo' ? `<div style="display:flex;justify-content:space-between;font-size:12px"><span>Recibido</span><span>${mxn(venta.recibido)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span>Cambio</span><span><b>${mxn(venta.cambio>0?venta.cambio:0)}</b></span></div>` : ''}
+      <div style="border-top:1px dashed #999;margin:8px 0"></div>
+      <div style="text-align:center;font-size:11px;color:#555">¡Gracias por su compra!</div>
+      <div style="text-align:center;font-size:10px;color:#999;margin-top:2px">Conserve su ticket</div>
+      <div style="text-align:center;font-size:9px;color:#bbb;margin-top:6px">FarmaPos PRO · by Omnia Technology</div>`;
+  }
+
+  // Preview en modal
+  return `
+    <div class="tk-logo">${negocio.toUpperCase()}</div>
+    <div class="tk-sub">${dir}${dir&&tel?' · ':''}${tel?'Tel: '+tel:''}</div>
+    ${rfc ? `<div class="tk-sub">RFC: ${rfc}</div>` : ''}
+    <div class="tk-div"></div>
+    <div class="tk-row"><span>Folio: <b>${venta.folio}</b></span><span>${fStr} ${hStr}</span></div>
+    <div class="tk-div"></div>
+    ${itemsHTML}
+    <div class="tk-div"></div>
+    <div class="tk-row"><span>Subtotal</span><span>${mxn(venta.subtotal)}</span></div>
+    ${descLine}
+    <div class="tk-total"><span>TOTAL</span><span>${mxn(venta.total)}</span></div>
+    <div class="tk-div"></div>
+    <div class="tk-row"><span>Método</span><span>${metodoLabel}</span></div>
+    ${venta.metodo==='efectivo' ? `<div class="tk-row"><span>Recibido</span><span>${mxn(venta.recibido)}</span></div>
+    <div class="tk-row"><span>Cambio</span><span style="font-size:15px;font-weight:700;color:#059669">${mxn(venta.cambio>0?venta.cambio:0)}</span></div>` : ''}
+    <div class="tk-foot">¡Gracias por su compra!</div>`;
+}
+
+function mostrarTicket(venta) {
+  ticketActual = venta;
+  currentVentaId = venta.id;
+  document.getElementById('ticket-preview-body').innerHTML = buildTicketHTML(venta, false);
+  document.getElementById('ticket-folio-badge').textContent = venta.folio;
+  openModal('modal-ticket');
+  // Imprimir automáticamente. IMPORTANTE: se llama de forma síncrona, en el mismo
+  // "tick" que el clic del usuario en "Confirmar" — si se llama dentro de un
+  // setTimeout, Chrome/Firefox/Safari lo tratan como popup no solicitado y lo
+  // bloquean silenciosamente (el cajero cree que imprimió y no fue así).
+  imprimirTicketActual();
+  // Cerrar el ticket y regresar el foco al escáner automáticamente para la
+  // siguiente venta. "Facturar"/reimprimir siguen disponibles después desde
+  // el historial de ventas.
+  setTimeout(() => { closeModal('modal-ticket'); focusBarcode(); }, 1500);
+}
+
+function imprimirTicketActual() {
+  if (ticketActual) imprimirVenta(ticketActual);
+}
+
+function imprimirTicketById(id) {
+  const v = db.ventas.find(x=>x.id===id);
+  if (v) imprimirVenta(v);
+}
+
+function imprimirVenta(venta) {
+  const negocio = cfg.nombre || 'Farmacia';
+  const anchoPapel = cfg.ticketAncho === '58' ? '58' : '80';
+  const anchoContenido = anchoPapel === '58' ? '48mm' : '72mm';
+  const html = buildTicketHTML(venta, true);
+  const win = window.open('', '_blank', 'width=320,height=600,scrollbars=yes');
+  win.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Ticket ${venta.folio}</title>
+<style>
+  @page { size: ${anchoPapel}mm auto; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: ${anchoContenido}; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    color: #000;
+    line-height: 1.5;
+    padding: 2mm;
+  }
+  @media print {
+    html, body { width: ${anchoContenido}; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+${html}
+<br>
+<div class="no-print" style="margin-top:16px;text-align:center">
+  <button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer;background:#059669;color:#fff;border:none;border-radius:6px">
+    🖨 Imprimir
+  </button>
+  <button onclick="window.close()" style="padding:8px 16px;font-size:14px;cursor:pointer;margin-left:8px;border:1px solid #ccc;border-radius:6px">
+    Cerrar
+  </button>
+</div>
+</body></html>`);
+  win.document.close();
+  win.focus();
+  // Cierra la ventana sola al terminar de imprimir (o cancelar el diálogo).
+  // Se engancha desde aquí, no con un <script> embebido en el HTML escrito,
+  // para no arriesgarnos a cerrar por accidente el <script> principal de la página.
+  try { win.addEventListener('afterprint', () => { try { win.close(); } catch(e){} }); } catch(e){}
+  // Auto-print en desktop
+  setTimeout(() => { try { win.print(); } catch(e){} }, 400);
+  // Respaldo: en algunos navegadores Android "afterprint" no se dispara.
+  setTimeout(() => { try { if (!win.closed) win.close(); } catch(e){} }, 5000);
+}
+
+function focusBarcode() {
+  setTimeout(()=>{ const el=document.getElementById('pos-barcode'); if(el) el.focus(); },150);
+}
+
+// ══════════════════════════════════════════════════════════
+//  CAJA
+// ══════════════════════════════════════════════════════════
+async function abrirCaja() {
+  const fondo = parseFloat(document.getElementById('caja-fondo').value)||0;
+  db.caja = {abierta:true, fondo, fechaApertura:new Date().toISOString()};
+  await saveAndSync();
+  document.getElementById('caja-closed').style.display='none';
+  document.getElementById('caja-open').style.display='block';
+  updateBadge(); renderCaja();
+  toast('Caja abierta ✓');
+}
+
+async function cerrarCaja() {
+  if (!confirm('¿Cerrar la caja?')) return;
+  const h = hoy();
+  const movH = db.movimientos.filter(m=>m.fecha.startsWith(h));
+  const ing  = movH.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const egr  = movH.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+m.monto,0);
+  db.cortes.push({
+    apertura:db.caja.fechaApertura, cierre:new Date().toISOString(),
+    fondo:db.caja.fondo, ingresos:ing, egresos:egr, saldoFinal:db.caja.fondo+ing-egr
+  });
+  db.caja = {abierta:false,fondo:0,fechaApertura:null};
+  await saveAndSync();
+  document.getElementById('caja-closed').style.display='block';
+  document.getElementById('caja-open').style.display='none';
+  updateBadge(); renderCaja();
+  toast('Caja cerrada. Corte generado ✓');
+}
+
+async function registrarMov() {
+  if (!db.caja.abierta) { toast('Abre la caja primero','warn'); return; }
+  const tipo    = document.getElementById('mov-tipo').value;
+  const monto   = parseFloat(document.getElementById('mov-monto').value);
+  const concepto= document.getElementById('mov-concepto').value.trim();
+  if (!monto||monto<=0) { toast('Monto inválido','err'); return; }
+  if (!concepto) { toast('Escribe un concepto','err'); return; }
+  db.movimientos.push({id:uid(), fecha:new Date().toISOString(), tipo, monto, concepto});
+  document.getElementById('mov-monto').value='';
+  document.getElementById('mov-concepto').value='';
+  await saveAndSync();
+  renderCaja(); updateBadge();
+  toast(`${tipo==='ingreso'?'💚':'🔴'} ${tipo} registrado: ${mxn(monto)}`);
+}
+
+function renderCaja() {
+  const h = hoy();
+  const movH = db.movimientos.filter(m=>m.fecha.startsWith(h));
+  const ing  = movH.filter(m=>m.tipo==='ingreso').reduce((s,m)=>s+m.monto,0);
+  const egr  = movH.filter(m=>m.tipo==='egreso').reduce((s,m)=>s+m.monto,0);
+  const vtasH= db.ventas.filter(v=>v.fecha.startsWith(h)).length;
+  const saldo= db.caja.fondo+ing-egr;
+
+  document.getElementById('caja-saldo-big').textContent = mxn(saldo);
+  document.getElementById('caja-ing-hoy').textContent   = mxn(ing);
+  document.getElementById('caja-egr-hoy').textContent   = mxn(egr);
+  document.getElementById('caja-vtashoy').textContent   = vtasH;
+  document.getElementById('caja-estado-txt').textContent= db.caja.abierta
+    ? 'Abierta desde '+new Date(db.caja.fechaApertura).toLocaleTimeString('es-MX')
+    : 'Caja cerrada';
+
+  const list  = document.getElementById('mov-list');
+  const empty = document.getElementById('mov-empty');
+  if (!movH.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = [...movH].reverse().map(m=>`
+    <div class="mov-item">
+      <div class="mov-dot" style="background:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}"></div>
+      <div class="mov-body">
+        <strong>${m.concepto}</strong>
+        <span>${new Date(m.fecha).toLocaleTimeString('es-MX')}</span>
+      </div>
+      <div class="mov-amt" style="color:${m.tipo==='ingreso'?'var(--verde)':'var(--rojo)'}">
+        ${m.tipo==='ingreso'?'+':'−'}${mxn(m.monto)}
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  REPORTES
+// ══════════════════════════════════════════════════════════
+function getVentasFiltradas() {
+  const per = document.getElementById('rep-per').value;
+  const now = new Date();
+  return db.ventas.filter(v=>{
+    const d=new Date(v.fecha);
+    if(per==='hoy') return d.toDateString()===now.toDateString();
+    if(per==='sem') return (now-d)<7*86400000;
+    if(per==='mes') return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    return true;
+  });
+}
+
+function renderReportes() {
+  const vs = getVentasFiltradas();
+  const tot  = vs.reduce((s,v)=>s+v.total,0);
+  const cost = vs.reduce((s,v)=>s+v.items.reduce((ss,i)=>ss+(i.costo||0)*i.qty,0),0);
+  const gan  = tot-cost;
+  document.getElementById('r-vtot').textContent = mxn(tot);
+  document.getElementById('r-costo').textContent= mxn(cost);
+  document.getElementById('r-gan').textContent  = mxn(gan);
+  document.getElementById('r-marg').textContent = (tot?((gan/tot)*100):0).toFixed(1)+'%';
+  document.getElementById('r-vn').textContent   = vs.length+' ticket'+(vs.length!==1?'s':'');
+  renderBarChart();
+}
+
+function renderBarChart() {
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+  const vals = days.map(d=>db.ventas.filter(v=>new Date(v.fecha).toDateString()===d.toDateString()).reduce((s,v)=>s+v.total,0));
+  const maxV = Math.max(...vals,1);
+  document.getElementById('bar-chart').innerHTML = days.map((d,i)=>{
+    const pct = Math.round((vals[i]/maxV)*90);
+    return `<div class="bar-col">
+      <div class="bar-amt">${vals[i]>0?mxn(vals[i]).replace('$',''):''}</div>
+      <div class="bar-fill" style="height:${pct}%;background:var(--verde);opacity:.8"></div>
+      <div class="bar-lbl">${d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric'})}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistorial() {
+  const q    = document.getElementById('rv-q').value.toLowerCase();
+  const fecha= document.getElementById('rv-fecha').value;
+  const vs   = [...db.ventas].reverse().filter(v=>{
+    const mq = !q||(v.folio.toLowerCase().includes(q)||v.items.some(i=>i.nombre.toLowerCase().includes(q)));
+    const mf = !fecha||v.fecha.startsWith(fecha);
+    return mq&&mf;
+  });
+  const tbody = document.getElementById('rv-tbody');
+  if (!vs.length) { tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:20px">Sin ventas</td></tr>`; return; }
+  tbody.innerHTML = vs.map(v=>`<tr>
+    <td style="font-size:11px;white-space:nowrap">${new Date(v.fecha).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'})}</td>
+    <td><span class="badge badge-indigo">${v.folio}</span></td>
+    <td>${v.items.length}</td>
+    <td style="font:600 13px var(--mono);color:var(--verde)">${mxn(v.total)}</td>
+    <td><span class="badge badge-verde">${v.metodo}</span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="verVenta('${v.id}')">Ver</button></td>
+  </tr>`).join('');
+}
+
+function verVenta(id) {
+  const v = db.ventas.find(x=>x.id===id); if(!v)return;
+  currentVentaId = id;
+  document.getElementById('vdet-body').innerHTML = `
+    <div style="font:500 11px var(--mono);color:var(--txt2);margin-bottom:10px">${v.folio} | ${new Date(v.fecha).toLocaleString('es-MX')} | ${v.metodo}</div>
+    <table style="font-size:13px;margin-bottom:10px">
+      <thead><tr><th>Producto</th><th>Qty</th><th>P.U.</th><th>Total</th></tr></thead>
+      <tbody>${v.items.map(i=>`<tr><td>${i.nombre}</td><td>${i.qty}</td><td>${mxn(i.precio)}</td><td>${mxn(i.precio*i.qty)}</td></tr>`).join('')}</tbody>
+    </table>
+    <hr>
+    <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Subtotal</span><span style="font-family:var(--mono)">${mxn(v.subtotal)}</span></div>
+    ${v.descuento?`<div style="display:flex;justify-content:space-between;padding:4px 0;color:var(--rojo)"><span>Descuento ${v.descuento}%</span><span>−${mxn(v.subtotal*v.descuento/100)}</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;font:700 1rem var(--sans);padding:8px 0 4px"><span>Total</span><span style="font-family:var(--mono);color:var(--verde)">${mxn(v.total)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt2)"><span>Recibido</span><span>${mxn(v.recibido)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt2)"><span>Cambio</span><span>${mxn(v.cambio>0?v.cambio:0)}</span></div>`;
+  openModal('modal-vdet');
+}
+
+function renderTop() {
+  const map={};
+  db.ventas.forEach(v=>v.items.forEach(i=>{
+    if(!map[i.barcode]) map[i.barcode]={nombre:i.nombre,qty:0,total:0};
+    map[i.barcode].qty+=i.qty; map[i.barcode].total+=i.precio*i.qty;
+  }));
+  const sorted=Object.values(map).sort((a,b)=>b.qty-a.qty);
+  const tbody=document.getElementById('rtop-tbody');
+  if(!sorted.length){tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;color:var(--txt2);padding:20px">Sin datos</td></tr>`;return;}
+  tbody.innerHTML=sorted.map((p,i)=>`<tr>
+    <td><strong>${i+1}</strong></td>
+    <td>${p.nombre}</td>
+    <td style="font-family:var(--mono)">${p.qty}</td>
+    <td style="font:600 13px var(--mono);color:var(--verde)">${mxn(p.total)}</td>
+  </tr>`).join('');
+}
+
+function renderCortes() {
+  const tbody=document.getElementById('rc-tbody');
+  if(!db.cortes.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:20px">Sin cortes</td></tr>`;return;}
+  tbody.innerHTML=[...db.cortes].reverse().map(c=>`<tr>
+    <td style="font-size:11px">${new Date(c.apertura).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'})}</td>
+    <td style="font-size:11px">${new Date(c.cierre).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'})}</td>
+    <td style="font-family:var(--mono)">${mxn(c.fondo)}</td>
+    <td style="font-family:var(--mono);color:var(--verde)">${mxn(c.ingresos)}</td>
+    <td style="font-family:var(--mono);color:var(--rojo)">${mxn(c.egresos)}</td>
+    <td style="font:600 14px var(--mono)">${mxn(c.saldoFinal)}</td>
+  </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  DEMO DATA
+// ══════════════════════════════════════════════════════════
+function loadDemoData() {
+  const mkDate = (daysAgo, h=10, m=0) => {
+    const d=new Date(); d.setDate(d.getDate()-daysAgo);
+    d.setHours(h,m,0,0); return d.toISOString();
+  };
+
+  db.productos = [
+    {id:uid(),barcode:'7501234567890',nombre:'Paracetamol 500mg c/10',cat:'Analgésicos',proveedor:'Pisa',precio:28.50,costo:13,stock:42,stockmin:10,vence:'2026-12-01',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7509999888777',nombre:'Ibuprofeno 400mg c/10',cat:'Analgésicos',proveedor:'Pisa',precio:34.00,costo:16,stock:30,stockmin:10,vence:'2026-10-15',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7508765432109',nombre:'Amoxicilina 500mg c/15',cat:'Antibióticos',proveedor:'Liomont',precio:89.00,costo:42,stock:18,stockmin:8,vence:'2025-08-01',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7501111222333',nombre:'Omeprazol 20mg c/14',cat:'Gastrointestinal',proveedor:'Alpharma',precio:65.00,costo:30,stock:25,stockmin:8,vence:'2027-03-01',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7504444555666',nombre:'Losartán 50mg c/30',cat:'Cardiovascular',proveedor:'Pisa',precio:120.00,costo:58,stock:5,stockmin:10,vence:'2027-06-01',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7507777888999',nombre:'Vitamina C 1g efervescente c/10',cat:'Vitaminas',proveedor:'Bayer',precio:45.00,costo:20,stock:60,stockmin:15,vence:'2027-01-01',unidad:'tubo',desc:''},
+    {id:uid(),barcode:'7502222333444',nombre:'Alcohol en gel 500ml',cat:'Higiene',proveedor:'Siete Leguas',precio:55.00,costo:27,stock:0,stockmin:5,vence:'',unidad:'frasco',desc:''},
+    {id:uid(),barcode:'7506666777888',nombre:'Glucómetro OneTouch',cat:'Dispositivos',proveedor:'LifeScan',precio:380.00,costo:195,stock:3,stockmin:2,vence:'',unidad:'pza',desc:''},
+    {id:uid(),barcode:'7503333444555',nombre:'Metformina 850mg c/30',cat:'Diabetes',proveedor:'Pisa',precio:95.00,costo:45,stock:20,stockmin:8,vence:'2027-04-01',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7505555666777',nombre:'Cetirizina 10mg c/10',cat:'Alergias',proveedor:'Liomont',precio:38.00,costo:18,stock:35,stockmin:10,vence:'2027-02-01',unidad:'caja',desc:''},
+    {id:uid(),barcode:'7508888999000',nombre:'Termómetro digital',cat:'Dispositivos',proveedor:'Beurer',precio:220.00,costo:110,stock:8,stockmin:3,vence:'',unidad:'pza',desc:''},
+    {id:uid(),barcode:'7501010101010',nombre:'Suero oral 1L',cat:'Gastrointestinal',proveedor:'Pisa',precio:22.00,costo:9,stock:50,stockmin:20,vence:'2026-09-01',unidad:'bolsa',desc:''},
+  ];
+
+  // Ventas simuladas de los últimos 7 días
+  const prods = db.productos;
+  const mkVenta = (daysAgo, items, metodo='efectivo') => {
+    const subtotal = items.reduce((s,i)=>s+i.precio*i.qty, 0);
+    return {
+      id:uid(),
+      folio:'V-'+String(db.ventas.length+1).padStart(4,'0'),
+      fecha:mkDate(daysAgo, 9+Math.floor(Math.random()*8), Math.floor(Math.random()*60)),
+      items, subtotal, descuento:0, total:subtotal,
+      recibido:subtotal, cambio:0, metodo
+    };
+  };
+
+  // Generar historial de ventas
+  [[6,[{...prods[0],qty:2},{...prods[5],qty:1}],'efectivo'],
+   [6,[{...prods[1],qty:1},{...prods[3],qty:2}],'tarjeta'],
+   [5,[{...prods[2],qty:1}],'efectivo'],
+   [5,[{...prods[0],qty:3},{...prods[9],qty:2}],'transferencia'],
+   [4,[{...prods[7],qty:1},{...prods[5],qty:2}],'tarjeta'],
+   [4,[{...prods[3],qty:1},{...prods[11],qty:3}],'efectivo'],
+   [3,[{...prods[8],qty:1},{...prods[4],qty:1}],'efectivo'],
+   [3,[{...prods[1],qty:2},{...prods[0],qty:2}],'tarjeta'],
+   [2,[{...prods[10],qty:1}],'efectivo'],
+   [2,[{...prods[5],qty:3},{...prods[9],qty:1}],'transferencia'],
+   [1,[{...prods[0],qty:1},{...prods[3],qty:1},{...prods[11],qty:2}],'efectivo'],
+   [1,[{...prods[2],qty:2}],'tarjeta'],
+   [0,[{...prods[0],qty:2},{...prods[5],qty:1}],'efectivo'],
+   [0,[{...prods[8],qty:1},{...prods[9],qty:2}],'tarjeta'],
+   [0,[{...prods[4],qty:1}],'efectivo'],
+  ].forEach(([d,items,m])=>{
+    db.ventas.push(mkVenta(d,items,m));
+  });
+
+  // Movimientos de caja simulados
+  db.caja = {abierta:true, fondo:1500, fechaApertura:mkDate(0,8,0)};
+  db.movimientos = [
+    {id:uid(),fecha:mkDate(0,8,5),tipo:'ingreso',monto:db.ventas.filter(v=>v.fecha.startsWith(hoy())).reduce((s,v)=>s+v.total,0),concepto:'Ventas del día (apertura demo)'},
+    {id:uid(),fecha:mkDate(0,13,0),tipo:'egreso',monto:450,concepto:'Pago parcial proveedor Pisa'},
+    {id:uid(),fecha:mkDate(0,16,30),tipo:'egreso',monto:120,concepto:'Gastos de limpieza'},
+  ];
+
+  save();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DEMO RESET
+// ══════════════════════════════════════════════════════════
+function resetDemo() {
+  if (!confirm('¿Reiniciar todos los datos de demostración?')) return;
+  db = {productos:[],ventas:[],movimientos:[],caja:{abierta:false,fondo:0,fechaApertura:null},cortes:[]};
+  loadDemoData();
+  ticket=[];
+  renderTicket();
+  renderPosGrid();
+  renderInv();
+  renderCaja();
+  renderReportes();
+  updateBadge();
+  document.getElementById('caja-closed').style.display='none';
+  document.getElementById('caja-open').style.display='block';
+  toast('Demo reiniciado ✓');
+}
+
+// ══════════════════════════════════════════════════════════
+//  EXPORT / DELETE
+// ══════════════════════════════════════════════════════════
+function exportDB() {
+  const a=Object.assign(document.createElement('a'),{
+    href: URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'})),
+    download:`farmapos_backup_${hoy()}.json`
+  });
+  a.click();
+}
+
+async function borrarTodo() {
+  if (!confirm('⚠️ ¿Borrar TODOS los datos locales y en Google Sheets? Esta acción no se puede deshacer.')) return;
+  if (!confirm('Última confirmación: se eliminarán productos, ventas, movimientos y cortes.')) return;
+  // 1. Primero limpiar en Sheets con arrays vacíos (evita que el sync los restaure)
+  if (cfg.url) {
+    setSyncState('syncing', 'Borrando en Sheets…');
+    await sheetsPost({
+      action: 'sync_all',
+      data: { productos:[], ventas:[], movimientos:[], cortes:[] }
+    });
+  }
+  // 2. Borrar local
+  localStorage.removeItem('fp2_db');
+  setSyncState('idle');
+  toast('Datos eliminados ✓','warn');
+  setTimeout(()=>location.reload(), 800);
+}
+
+// ══════════════════════════════════════════════════════════
+//  PWA — INSTALACIÓN Y SERVICE WORKER
+// ══════════════════════════════════════════════════════════
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'inline-flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'none';
+  toast('¡FarmaPos instalado en tu dispositivo! ✓');
+});
+
+function installPWA() {
+  if (!deferredInstallPrompt) {
+    toast('Para instalar: usa el menú del navegador → "Agregar a pantalla de inicio"', 'warn');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') toast('Instalando FarmaPos… ✓');
+    deferredInstallPrompt = null;
+    document.getElementById('btn-install').style.display = 'none';
+  });
+}
+
+// Registrar Service Worker (debe existir sw.js en la misma carpeta)
+if ('serviceWorker' in navigator) {
+  // Cuando el Service Worker nuevo toma el control tras instalarse, la
+  // página se recarga sola una vez para mostrar la versión actualizada.
+  let farmaposSwRefrescando = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (farmaposSwRefrescando) return;
+    farmaposSwRefrescando = true;
+    location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then(reg => {
+        console.log('[FarmaPos] SW registrado:', reg.scope);
+        // Verificar si hay update disponible
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              toast('Actualizando a la versión más reciente…', 'warn');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[FarmaPos] SW no disponible:', err));
+  });
+}
+
+</script>
+</body>
+</html>
