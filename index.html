@@ -1265,12 +1265,6 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         style="text-align:center;font:700 1.2rem var(--mono);letter-spacing:4px"
         onkeydown="if(event.key==='Enter')verificarLicencia()">
     </div>
-    <div class="field">
-      <label>URL de validación (Apps Script)</label>
-      <input id="licencia-url" type="url" placeholder="https://script.google.com/macros/s/…/exec"
-        onkeydown="if(event.key==='Enter')verificarLicencia()">
-      <p style="font-size:11px;color:var(--txt2);margin-top:4px">Te la proporciona Omnia Technology junto con tu clave.</p>
-    </div>
     <div id="licencia-error" style="display:none;background:var(--rojo-lt);color:var(--rojo);border-radius:8px;padding:10px;font-size:12px;margin-bottom:10px;text-align:center"></div>
     <div id="licencia-loading" style="display:none;text-align:center;font-size:12px;color:var(--txt2);margin-bottom:10px">Verificando con el servidor…</div>
     <div style="display:flex;gap:8px">
@@ -1290,41 +1284,15 @@ const APPS_SCRIPT_CODE = `
 
 const SS_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 
-// ── LICENCIAS: se validan aquí, en el servidor, NUNCA en el cliente ──
-// Crea una hoja llamada "licencias" con columnas: clave | expiry (o vacío) | label | activa (TRUE/FALSE)
-function validarLicencia(clave) {
-  const sheet = getSheet('licencias');
-  const rows = sheet.getDataRange().getValues();
-  const headers = rows[0];
-  const iClave = headers.indexOf('clave');
-  const iExpiry = headers.indexOf('expiry');
-  const iLabel = headers.indexOf('label');
-  const iActiva = headers.indexOf('activa');
-  for (let i=1;i<rows.length;i++){
-    const r = rows[i];
-    if (String(r[iClave]).trim().toUpperCase() === String(clave).trim().toUpperCase()) {
-      if (r[iActiva] === false || r[iActiva] === 'FALSE') return {ok:false, error:'Clave revocada'};
-      const expiry = r[iExpiry];
-      if (expiry) {
-        const expDate = new Date(expiry + 'T23:59:59');
-        if (new Date() > expDate) return {ok:false, error:'Clave vencida', expiry};
-      }
-      return {ok:true, label:r[iLabel]||'', expiry: expiry||null};
-    }
-  }
-  return {ok:false, error:'Clave inválida'};
-}
+// ── LICENCIA PRO: se valida en el Panel Maestro de Omnia (Control Central),
+// NO en este script. Este backend solo guarda los datos del negocio
+// (productos, ventas, etc.); ya no necesitas una hoja "licencias" aquí.
 
 function doGet(e) {
   const action = e.parameter.action || '';
 
   if (action === 'ping') {
     return json({ok:true, msg:'pong', ts:new Date().toISOString()});
-  }
-
-  if (action === 'verificar_licencia') {
-    const resultado = validarLicencia(e.parameter.clave || '');
-    return json(resultado);
   }
 
   const sheet = getSheet(e.parameter.sheet || 'productos');
@@ -1341,11 +1309,6 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const {action, sheet: sheetName, data, id} = body;
-
-    if (action === 'verificar_licencia') {
-      const resultado = validarLicencia(body.clave || '');
-      return json(resultado);
-    }
 
     const sheet = getSheet(sheetName || 'productos');
     const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
@@ -1401,8 +1364,7 @@ function getSheet(name) {
       productos:   ['id','barcode','nombre','cat','proveedor','precio','costo','stock','stockmin','vence','unidad','desc'],
       ventas:      ['id','folio','fecha','items','subtotal','descuento','total','recibido','cambio','metodo'],
       movimientos: ['id','fecha','tipo','monto','concepto'],
-      config:      ['key','value'],
-      licencias:   ['clave','expiry','label','activa']
+      config:      ['key','value']
     };
     if (headers[name]) s.getRange(1,1,1,headers[name].length).setValues([headers[name]]);
   }
@@ -1427,10 +1389,17 @@ let ticket = [];
 //  No confundir con cfg.url (esa es la hoja de DATOS del cliente).
 //  Esta URL la define Omnia una sola vez al compilar/entregar la app;
 //  el cliente nunca la ve ni la puede editar desde la interfaz.
+//
+//  La licencia PRO (ver "── LICENCIA ──" más abajo) también se valida aquí
+//  mismo (action=verify, productId=prod_farmapos), igual que NovaPOS. Antes
+//  cada cliente necesitaba desplegar su propio Code_farmapos.gs con una hoja
+//  "licencias" propia solo para activar el PRO — ya no hace falta; ese script
+//  ahora solo sirve para sincronizar productos/ventas del cliente.
 // ══════════════════════════════════════════════════════════
 const OMNIA_CONTROL_URL = 'https://script.google.com/macros/s/AKfycbzhU4ElNfiCO808AgiXcIxj3cazaAdrtiXdpGJ_f-FnCb3LqsrseZbBSCJ7-WaMrxdWcA/exec'; // ← Omnia: pega aquí la URL /exec del script central antes de entregar la app
 const OMNIA_APP_NAME    = 'farmapos';
 const OMNIA_APP_VERSION = 'pro'; // 'demo' en la versión demo
+const FARMAPOS_PRODUCT_ID = 'prod_farmapos'; // debe existir con este id en la pestaña "Products" del Sheet maestro de Omnia
 
 function omniaDeviceId() {
   let id = localStorage.getItem('omnia_device_id');
@@ -1549,15 +1518,11 @@ let editProdId = null;
 let syncing = false;
 
 // ── LICENCIA ──────────────────────────────────────────────────────────────────
-// IMPORTANTE: las claves YA NO viven aquí. Antes estaban hardcodeadas en este
-// archivo, lo cual significa que cualquiera con "Ver código fuente" podía leerlas
-// y activar PRO sin pagar. Ahora la validación ocurre en el Apps Script (backend),
-// contra la hoja "licencias" de tu Google Sheet. Ver validarLicencia() más arriba
-// en APPS_SCRIPT_CODE. Esto requiere que cfg.url (la URL del Apps Script) esté
-// configurada — si el cliente aún no tiene Sheets conectado, no puede activar PRO
-// hasta que el distribuidor (Omnia Technology) le entregue la URL junto con la clave.
+// IMPORTANTE: las claves YA NO viven aquí. La validación ocurre en el Panel
+// Maestro de Omnia (OMNIA_CONTROL_URL, más arriba), igual que NovaPOS — no
+// depende de que el cliente tenga su propio Apps Script conectado (cfg.url es
+// solo para sincronizar datos, no para licenciamiento). Ver consultarLicenciaOmnia().
 let modoProActivo = false;
-let licenciaUrl = ''; // se pide una vez y se guarda junto con la clave, ver verificarLicencia()
 
 // ══════════════════════════════════════════════════════════
 //  PERSIST
@@ -2080,28 +2045,33 @@ function guardarNegocioPro() {
 }
 
 // ── LICENCIA ──────────────────────────────────────────────────────────────────
-// La validación ahora ocurre en el servidor (Apps Script → hoja "licencias").
-// El cliente nunca conoce el conjunto de claves válidas, solo envía la que el
-// usuario escribió y confía en la respuesta ok:true/false del backend.
+// La validación ocurre contra el Panel Maestro de Omnia (mismo backend/hoja
+// "Licenses" que NovaPOS), no contra el Apps Script de datos del cliente
+// (cfg.url) — ese sigue siendo solo para sincronizar productos/ventas.
+async function consultarLicenciaOmnia(clave) {
+  const r = await fetch(`${OMNIA_CONTROL_URL}?action=verify&key=${encodeURIComponent(clave)}&productId=${encodeURIComponent(FARMAPOS_PRODUCT_ID)}&_=${Date.now()}`, {cache:'no-store'});
+  if (!r.ok) throw new Error('bad response');
+  return r.json(); // {status: "active"|"expired"|"locked"|"not_found", expiresAt}
+}
+
 async function verificarLicencia() {
-  const input   = document.getElementById('licencia-input').value.trim();
-  const url     = document.getElementById('licencia-url').value.trim();
+  const input   = document.getElementById('licencia-input').value.trim().toUpperCase();
   const errEl   = document.getElementById('licencia-error');
   const loadEl  = document.getElementById('licencia-loading');
   const btn     = document.getElementById('btn-verificar-lic');
   errEl.style.display = 'none';
 
   if (!input) { errEl.textContent = 'Escribe tu clave de activación.'; errEl.style.display='block'; return; }
-  if (!url)   { errEl.textContent = 'Falta la URL de validación que te dio Omnia Technology.'; errEl.style.display='block'; return; }
 
   btn.disabled = true;
   loadEl.style.display = 'block';
   try {
-    const r = await fetch(`${url}?action=verificar_licencia&clave=${encodeURIComponent(input)}&_=${Date.now()}`);
-    const j = await r.json();
-    if (!j.ok) {
-      errEl.textContent = '❌ ' + (j.error==='Clave vencida'
-        ? `Esta clave venció${j.expiry?' el '+new Date(j.expiry+'T23:59:59').toLocaleDateString('es-MX'):''}. Contacta a tu proveedor para renovarla.`
+    const j = await consultarLicenciaOmnia(input);
+    if (j.status !== 'active') {
+      errEl.textContent = '❌ ' + (j.status === 'expired'
+        ? 'Esta clave venció. Contacta a tu proveedor para renovarla.'
+        : j.status === 'locked'
+        ? 'Esta licencia fue desactivada. Contacta a tu proveedor.'
         : 'Clave inválida. Verifica que la escribiste correctamente.');
       errEl.style.display = 'block';
       document.getElementById('licencia-input').value = '';
@@ -2109,16 +2079,15 @@ async function verificarLicencia() {
     }
 
     localStorage.setItem('fp2_pro_session', JSON.stringify({
-      clave: input, label: j.label, expiry: j.expiry, url, activadoEn: new Date().toISOString()
+      clave: input, expiry: j.expiresAt || null, activadoEn: new Date().toISOString()
     }));
-    cfg.url = url; saveCfg();
 
     closeModal('modal-licencia');
     document.getElementById('licencia-input').value = '';
-    activarModoPro(j);
+    activarModoPro({ expiry: j.expiresAt || null });
     toast('Licencia activada — Bienvenido ✓');
   } catch(e) {
-    errEl.textContent = '⚠️ No se pudo contactar al servidor de validación. Revisa tu conexión o la URL.';
+    errEl.textContent = '⚠️ No se pudo contactar al servidor de validación. Revisa tu conexión.';
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false;
@@ -2131,20 +2100,20 @@ async function verificarSesionGuardada() {
   if (!raw) return;
   let sesion;
   try { sesion = JSON.parse(raw); } catch(e) { localStorage.removeItem('fp2_pro_session'); return; }
-  if (!sesion.url) { localStorage.removeItem('fp2_pro_session'); return; }
+  if (!sesion.clave) { localStorage.removeItem('fp2_pro_session'); return; }
   try {
-    const r = await fetch(`${sesion.url}?action=verificar_licencia&clave=${encodeURIComponent(sesion.clave)}&_=${Date.now()}`);
-    const j = await r.json();
-    if (!j.ok) {
+    const j = await consultarLicenciaOmnia(sesion.clave);
+    if (j.status !== 'active') {
       localStorage.removeItem('fp2_pro_session');
-      toast(j.error==='Clave vencida' ? 'Tu licencia PRO venció. Renuévala con tu proveedor.' : 'Tu acceso PRO fue revocado. Contacta a tu proveedor.', 'warn');
+      toast(j.status === 'expired' ? 'Tu licencia PRO venció. Renuévala con tu proveedor.' : 'Tu acceso PRO fue revocado. Contacta a tu proveedor.', 'warn');
       return;
     }
-    activarModoPro(j);
+    localStorage.setItem('fp2_pro_session', JSON.stringify({ ...sesion, expiry: j.expiresAt || null }));
+    activarModoPro({ expiry: j.expiresAt || null });
   } catch(e) {
     // Sin conexión: permite seguir trabajando en modo PRO offline con la última sesión válida conocida,
     // pero no renueva la validación hasta que vuelva a haber red.
-    activarModoPro({label:sesion.label, expiry:sesion.expiry});
+    activarModoPro({ expiry: sesion.expiry });
   }
 }
 

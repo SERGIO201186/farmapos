@@ -3,41 +3,16 @@
 
 const SS_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 
-// ── LICENCIAS: se validan aquí, en el servidor, NUNCA en el cliente ──
-// Crea una hoja llamada "licencias" con columnas: clave | expiry (o vacío) | label | activa (TRUE/FALSE)
-function validarLicencia(clave) {
-  const sheet = getSheet('licencias');
-  const rows = sheet.getDataRange().getValues();
-  const headers = rows[0];
-  const iClave = headers.indexOf('clave');
-  const iExpiry = headers.indexOf('expiry');
-  const iLabel = headers.indexOf('label');
-  const iActiva = headers.indexOf('activa');
-  for (let i=1;i<rows.length;i++){
-    const r = rows[i];
-    if (String(r[iClave]).trim().toUpperCase() === String(clave).trim().toUpperCase()) {
-      if (r[iActiva] === false || r[iActiva] === 'FALSE') return {ok:false, error:'Clave revocada'};
-      const expiry = r[iExpiry];
-      if (expiry) {
-        const expDate = new Date(expiry + 'T23:59:59');
-        if (new Date() > expDate) return {ok:false, error:'Clave vencida', expiry};
-      }
-      return {ok:true, label:r[iLabel]||'', expiry: expiry||null};
-    }
-  }
-  return {ok:false, error:'Clave inválida'};
-}
+// ── LICENCIA PRO: se valida en el Panel Maestro de Omnia (Control Central),
+// NO en este script. Cada cliente ya no necesita su propia hoja "licencias":
+// la app llama directo a la URL /exec del Panel Maestro (action=verify).
+// Este backend solo guarda los datos del negocio (productos, ventas, etc.).
 
 function doGet(e) {
   const action = e.parameter.action || '';
 
   if (action === 'ping') {
     return json({ok:true, msg:'pong', ts:new Date().toISOString()});
-  }
-
-  if (action === 'verificar_licencia') {
-    const resultado = validarLicencia(e.parameter.clave || '');
-    return json(resultado);
   }
 
   const sheet = getSheet(e.parameter.sheet || 'productos');
@@ -54,11 +29,6 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const {action, sheet: sheetName, data, id} = body;
-
-    if (action === 'verificar_licencia') {
-      const resultado = validarLicencia(body.clave || '');
-      return json(resultado);
-    }
 
     const sheet = getSheet(sheetName || 'productos');
     const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
@@ -115,8 +85,7 @@ function getSheet(name) {
       ventas:      ['id','folio','fecha','items','subtotal','descuento','total','recibido','cambio','metodo'],
       movimientos: ['id','fecha','tipo','monto','concepto'],
       cortes:      ['apertura','cierre','fondo','ingresos','egresos','saldoFinal'],
-      config:      ['key','value'],
-      licencias:   ['clave','expiry','label','activa']
+      config:      ['key','value']
     };
     if (headers[name]) s.getRange(1,1,1,headers[name].length).setValues([headers[name]]);
   }
