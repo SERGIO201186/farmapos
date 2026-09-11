@@ -1558,7 +1558,7 @@ let editPacienteId = null;
 //  el cliente nunca la ve ni la puede editar desde la interfaz.
 //
 //  La licencia PRO (ver "── LICENCIA ──" más abajo) también se valida aquí
-//  mismo (action=verify, productId=prod_farmapos), igual que NovaPOS. Antes
+//  mismo (action=verify, productId=prod_farmapos_v1/v2), igual que NovaPOS. Antes
 //  cada cliente necesitaba desplegar su propio Code_farmapos.gs con una hoja
 //  "licencias" propia solo para activar el PRO — ya no hace falta; ese script
 //  ahora solo sirve para sincronizar productos/ventas del cliente.
@@ -1566,7 +1566,7 @@ let editPacienteId = null;
 const OMNIA_CONTROL_URL = 'https://script.google.com/macros/s/AKfycbzhU4ElNfiCO808AgiXcIxj3cazaAdrtiXdpGJ_f-FnCb3LqsrseZbBSCJ7-WaMrxdWcA/exec'; // ← Omnia: pega aquí la URL /exec del script central antes de entregar la app
 const OMNIA_APP_NAME    = 'farmapos';
 const OMNIA_APP_VERSION = 'pro'; // 'demo' en la versión demo
-const FARMAPOS_PRODUCT_ID = 'prod_farmapos'; // debe existir con este id en la pestaña "Products" del Sheet maestro de Omnia
+const FARMAPOS_PRODUCT_ID = 'prod_farmapos_v1,prod_farmapos_v2'; // el catálogo ya no tiene un "prod_farmapos" genérico, solo las versiones con precio (v1/v2); handleVerify acepta una lista separada por comas
 
 function omniaDeviceId() {
   let id = localStorage.getItem('omnia_device_id');
@@ -1750,9 +1750,15 @@ async function initApp() {
   cfg.medEspecialidad = cfg.medEspecialidad || 'Medicina General';
   cfg.medCedula       = cfg.medCedula       || '12345678';
 
-  omniaShowGate('⏳','Verificando acceso…','Un momento por favor.');
-  const permitido = await verificarAccesoOmnia();
-  if (!permitido) return; // se queda en la pantalla de bloqueo/pendiente
+  // Antes había aquí una verificación bloqueante contra action='check' /
+  // 'actualizar_contacto' (aprobación manual por dispositivo). Esa acción
+  // pertenecía al viejo Code_farmapos.gs por cliente y nunca se migró al
+  // backend central (code_controlomnia.gs no la implementa) cuando se unificó
+  // el licenciamiento PRO — el resultado era que TODA carga de la app se
+  // quedaba atorada en "No se pudo verificar el acceso" sin ninguna forma de
+  // continuar, para cualquier usuario, demo o PRO. El acceso real ahora se
+  // controla con la licencia PRO (ver "── LICENCIA ──" y verificarSesionGuardada
+  // más abajo), así que ya no hace falta bloquear el arranque aquí.
 
   updateBadge();
   setSyncState('idle');
