@@ -85,7 +85,9 @@ function getSheet(name) {
       ventas:      ['id','folio','fecha','items','subtotal','descuento','total','recibido','cambio','metodo'],
       movimientos: ['id','fecha','tipo','monto','concepto'],
       cortes:      ['apertura','cierre','fondo','ingresos','egresos','saldoFinal'],
-      config:      ['key','value']
+      config:      ['key','value'],
+      pacientes:   ['id','nombre','fechaNacimiento','sexo','telefono','direccion','alergias','cronicas','notas','creado'],
+      recetas:     ['id','folio','fecha','pacienteId','pacienteNombre','pacienteEdad','pacienteSexo','diagnostico','notas','medicamentos','vigenciaDias','medicoNombre','medicoCedula','medicoCedulaEsp','medicoEspecialidad']
     };
     if (headers[name]) s.getRange(1,1,1,headers[name].length).setValues([headers[name]]);
   }
