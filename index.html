@@ -226,7 +226,7 @@ body{
 }
 
 /* ══ STAT TILES ══ */
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
 .tile{
   background:#fff;border:1px solid var(--border);
   border-radius:var(--r);padding:14px 16px;
@@ -649,6 +649,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <nav id="desk-nav">
     <button class="dnav-btn active" onclick="showView('pos',this)"><span class="icon">🛒</span>Venta</button>
     <button class="dnav-btn" onclick="showView('inventario',this)"><span class="icon">📦</span>Inventario</button>
+    <button class="dnav-btn" onclick="showView('recetas',this)"><span class="icon">🩺</span>Recetas</button>
     <button class="dnav-btn" onclick="showView('caja',this)"><span class="icon">💰</span>Caja</button>
     <button class="dnav-btn" onclick="showView('reportes',this)"><span class="icon">📊</span>Reportes</button>
     <button class="dnav-btn" onclick="showView('config',this)"><span class="icon">⚙️</span>Config</button>
@@ -735,6 +736,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="tile verde"><div class="t-lbl">Valor inventario</div><div class="t-val" id="inv-val">$0</div></div>
     <div class="tile amber"><div class="t-lbl">Stock bajo</div><div class="t-val" id="inv-bajo">0</div></div>
     <div class="tile rojo"><div class="t-lbl">Sin existencia</div><div class="t-val" id="inv-cero">0</div></div>
+    <div class="tile amber"><div class="t-lbl">Por caducar (60 días)</div><div class="t-val" id="inv-porcaducar">0</div></div>
+    <div class="tile rojo"><div class="t-lbl">Caducados</div><div class="t-val" id="inv-caducados">0</div></div>
   </div>
 
   <!-- Escanear para agregar stock -->
@@ -766,6 +769,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
           <option value="">Todo el stock</option>
           <option value="bajo">Stock bajo</option>
           <option value="cero">Sin existencia</option>
+          <option value="porcaducar">Por caducar</option>
+          <option value="caducado">Caducados</option>
         </select>
       </div>
     </div>
@@ -778,6 +783,104 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
           </tr>
         </thead>
         <tbody id="inv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ VIEW: RECETAS ═══════ -->
+<div id="view-recetas" class="view">
+  <h2 style="font:700 1.1rem var(--sans)">🩺 Recetas médicas</h2>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('rx-nueva',this)">Nueva receta</button>
+    <button class="tab-btn" onclick="showTab('rx-emitidas',this)">Recetas emitidas</button>
+    <button class="tab-btn" onclick="showTab('rx-pacientes',this)">Pacientes</button>
+  </div>
+
+  <!-- NUEVA RECETA -->
+  <div id="rx-nueva">
+    <div class="card">
+      <div class="card-hd">🧑‍⚕️ Paciente</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="margin:0;flex:1;min-width:200px">
+          <label>Seleccionar paciente</label>
+          <select id="rx-paciente" onchange="onRxPacienteChange()"><option value="">— Elige un paciente —</option></select>
+        </div>
+        <button class="btn btn-ghost" onclick="openPacienteModal()">+ Nuevo paciente</button>
+      </div>
+      <div id="rx-paciente-info" style="display:none;margin-top:10px;background:var(--bg);border-radius:8px;padding:10px;font-size:12px;color:var(--txt2)"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">📋 Diagnóstico</div>
+      <div class="field" style="margin:0">
+        <label>Diagnóstico / padecimiento actual</label>
+        <textarea id="rx-diagnostico" rows="2" style="resize:vertical;font:14px var(--sans)" placeholder="Ej: Faringitis aguda"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">💊 Medicamentos recetados</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">Busca en el inventario de la farmacia para ver existencias y caducidad antes de recetar, o agrega un medicamento manualmente.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div class="search-wrap" style="flex:1;margin:0">
+          <input id="rx-buscar-med" placeholder="Buscar medicamento en inventario…" oninput="buscarMedInventario()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addMedManual()">+ Agregar manual</button>
+      </div>
+      <div id="rx-inv-results" style="margin-bottom:14px"></div>
+
+      <div id="rx-meds-empty" class="empty" style="padding:18px 0">
+        <div class="e-icon">💊</div>
+        <p>Aún no agregas medicamentos a esta receta</p>
+      </div>
+      <div id="rx-meds-rows"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">📝 Indicaciones generales</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+        <div class="field" style="margin:0">
+          <label>Indicaciones / recomendaciones al paciente</label>
+          <textarea id="rx-notas" rows="2" style="resize:vertical;font:14px var(--sans)" placeholder="Ej: Reposo, abundantes líquidos, acudir si hay fiebre &gt; 39°C"></textarea>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Vigencia de la receta (días)</label>
+          <input type="number" id="rx-vigencia" value="30" min="1">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+        <button class="btn btn-ghost" onclick="limpiarRx()">🗑 Limpiar</button>
+        <button class="btn btn-primary btn-lg" onclick="guardarReceta()">🖨 Generar y guardar receta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECETAS EMITIDAS -->
+  <div id="rx-emitidas" style="display:none">
+    <div class="filter-row">
+      <input id="rx-hist-q" placeholder="🔍 Buscar folio, paciente o diagnóstico…" oninput="renderRecetasEmitidas()">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Folio</th><th>Paciente</th><th>Diagnóstico</th><th>Meds</th><th></th></tr></thead>
+        <tbody id="rx-emit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PACIENTES -->
+  <div id="rx-pacientes" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div class="search-wrap" style="margin:0;flex:1;min-width:200px">
+        <input id="rx-pac-q" placeholder="🔍 Buscar paciente…" oninput="renderPacientes()">
+      </div>
+      <button class="btn btn-primary" onclick="openPacienteModal()">+ Nuevo paciente</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Nombre</th><th>Edad</th><th>Sexo</th><th>Teléfono</th><th>Alergias</th><th></th></tr></thead>
+        <tbody id="rx-pac-tbody"></tbody>
       </table>
     </div>
   </div>
@@ -977,6 +1080,20 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     </div>
 
     <div class="card">
+      <div class="card-hd">🩺 Datos del médico (para recetas)</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Estos datos aparecen impresos en cada receta médica que generes desde la sección Recetas.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0"><label>Nombre del médico</label><input id="cfg-med-nombre" placeholder="Dr. Juan Pérez López"></div>
+        <div class="field" style="margin:0"><label>Especialidad</label><input id="cfg-med-esp" placeholder="Medicina General"></div>
+        <div class="field" style="margin:0"><label>Cédula profesional *</label><input id="cfg-med-cedula" placeholder="1234567"></div>
+        <div class="field" style="margin:0"><label>Cédula de especialidad</label><input id="cfg-med-cedula-esp" placeholder="Opcional"></div>
+        <div class="field" style="margin:0"><label>Teléfono de consultorio</label><input id="cfg-med-tel" placeholder="228 000 0000"></div>
+        <div class="field" style="margin:0"><label>Email</label><input id="cfg-med-email" type="email" placeholder="doctor@ejemplo.com"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="guardarMedico()">💾 Guardar datos del médico</button>
+    </div>
+
+    <div class="card">
       <div class="card-hd">🎨 Logo y Branding</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
         <div>
@@ -1149,6 +1266,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div class="bnav-items">
     <button class="bnav-btn active" onclick="showView('pos',this)"><span class="bicon">🛒</span>Venta</button>
     <button class="bnav-btn" onclick="showView('inventario',this)"><span class="bicon">📦</span>Inventario</button>
+    <button class="bnav-btn" onclick="showView('recetas',this)"><span class="bicon">🩺</span>Recetas</button>
     <button class="bnav-btn" onclick="showView('caja',this)"><span class="bicon">💰</span>Caja</button>
     <button class="bnav-btn" onclick="showView('reportes',this)"><span class="bicon">📊</span>Reportes</button>
     <button class="bnav-btn" onclick="showView('config',this)"><span class="bicon">⚙️</span>Config</button>
@@ -1245,6 +1363,50 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="ticket-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-ticket');focusBarcode()">✕ Nueva venta</button>
       <button class="btn btn-indigo" style="flex:2" onclick="imprimirTicketActual()">🖨 Imprimir ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- Paciente -->
+<div class="modal-bg" id="modal-paciente">
+  <div class="modal">
+    <h3 id="mpac-title">🧑‍⚕️ Nuevo paciente</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" style="margin:0;grid-column:1/-1"><label>Nombre completo *</label><input id="pac-nombre" placeholder="Nombre del paciente"></div>
+      <div class="field" style="margin:0"><label>Fecha de nacimiento</label><input type="date" id="pac-fnac"></div>
+      <div class="field" style="margin:0">
+        <label>Sexo</label>
+        <select id="pac-sexo">
+          <option value="">—</option>
+          <option value="F">Femenino</option>
+          <option value="M">Masculino</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0"><label>Teléfono</label><input id="pac-tel" placeholder="228 000 0000"></div>
+      <div class="field" style="margin:0"><label>Dirección</label><input id="pac-dir" placeholder="Calle, Col, Ciudad"></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Alergias</label><textarea id="pac-alergias" rows="2" style="resize:vertical;font:14px var(--sans)" placeholder="Ej: Penicilina"></textarea></div>
+    <div class="field"><label>Enfermedades crónicas / antecedentes</label><textarea id="pac-cronicas" rows="2" style="resize:vertical;font:14px var(--sans)" placeholder="Ej: Diabetes tipo 2, hipertensión"></textarea></div>
+    <div class="field"><label>Notas</label><textarea id="pac-notas" rows="2" style="resize:vertical;font:14px var(--sans)"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-paciente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPaciente()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receta: vista previa / impresión -->
+<div class="modal-bg" id="modal-receta">
+  <div class="modal" style="max-width:420px;padding:0;overflow:hidden;border-radius:16px">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)">
+      <span style="font:700 13px var(--sans)">🩺 Receta médica</span>
+      <span id="receta-folio-badge" class="badge badge-indigo"></span>
+    </div>
+    <div id="receta-preview-body" style="max-height:60vh;overflow-y:auto;padding:20px 18px;font-family:var(--sans);font-size:13px;line-height:1.55;border-bottom:2px dashed var(--border2)"></div>
+    <div class="ticket-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-receta')">✕ Cerrar</button>
+      <button class="btn btn-indigo" style="flex:2" onclick="imprimirRecetaActual()">🖨 Imprimir receta</button>
     </div>
   </div>
 </div>
@@ -1364,7 +1526,9 @@ function getSheet(name) {
       productos:   ['id','barcode','nombre','cat','proveedor','precio','costo','stock','stockmin','vence','unidad','desc'],
       ventas:      ['id','folio','fecha','items','subtotal','descuento','total','recibido','cambio','metodo'],
       movimientos: ['id','fecha','tipo','monto','concepto'],
-      config:      ['key','value']
+      config:      ['key','value'],
+      pacientes:   ['id','nombre','fechaNacimiento','sexo','telefono','direccion','alergias','cronicas','notas','creado'],
+      recetas:     ['id','folio','fecha','pacienteId','pacienteNombre','pacienteEdad','pacienteSexo','diagnostico','notas','medicamentos','vigenciaDias','medicoNombre','medicoCedula','medicoCedulaEsp','medicoEspecialidad']
     };
     if (headers[name]) s.getRange(1,1,1,headers[name].length).setValues([headers[name]]);
   }
@@ -1380,9 +1544,12 @@ function json(obj) {
 // ══════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════
-let db = { productos:[], ventas:[], movimientos:[], caja:{abierta:false,fondo:0,fechaApertura:null}, cortes:[] };
-let cfg = { url:'', nombre:'FarmaPos Demo', rfc:'', tel:'', dir:'', ticketAncho:'80' };
+let db = { productos:[], ventas:[], movimientos:[], caja:{abierta:false,fondo:0,fechaApertura:null}, cortes:[], pacientes:[], recetas:[] };
+let cfg = { url:'', nombre:'FarmaPos Demo', rfc:'', tel:'', dir:'', ticketAncho:'80',
+  medNombre:'', medCedula:'', medCedulaEsp:'', medEspecialidad:'', medTelefono:'', medEmail:'' };
 let ticket = [];
+let rxMeds = [];
+let editPacienteId = null;
 
 // ══════════════════════════════════════════════════════════
 //  CONTROL CENTRAL DE ACCESO — OMNIA TECHNOLOGY
@@ -1546,6 +1713,8 @@ function load() {
     const c = localStorage.getItem('fp2_cfg');
     if (d) db  = JSON.parse(d);
     if (c) cfg = { ...cfg, ...JSON.parse(c) };
+    db.pacientes = db.pacientes || [];
+    db.recetas   = db.recetas   || [];
   } catch(e) {
     console.error('Datos locales corruptos, se reinicia el almacenamiento:', e);
     localStorage.removeItem('fp2_db');
@@ -1561,6 +1730,14 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 const hoy = () => new Date().toISOString().slice(0,10);
 function getCats(){ return [...new Set(db.productos.map(p=>p.cat).filter(Boolean))].sort(); }
 function isExpiringSoon(d){ if(!d)return false; return (new Date(d)-new Date())/(86400000)<60; }
+function isExpired(d){ if(!d)return false; return new Date(d) < new Date(new Date().toDateString()); }
+function calcEdad(fechaNac){
+  if (!fechaNac) return '';
+  const n = new Date(fechaNac), h = new Date();
+  let e = h.getFullYear() - n.getFullYear();
+  if (h.getMonth()<n.getMonth() || (h.getMonth()===n.getMonth() && h.getDate()<n.getDate())) e--;
+  return e>=0 ? e : '';
+}
 
 // ══════════════════════════════════════════════════════════
 //  INIT
@@ -1569,6 +1746,9 @@ async function initApp() {
   load();
   if (!db.productos.length) loadDemoData();
   cfg.nombre = cfg.nombre || 'FarmaPos Demo';
+  cfg.medNombre       = cfg.medNombre       || 'Dr. Roberto García Sánchez';
+  cfg.medEspecialidad = cfg.medEspecialidad || 'Medicina General';
+  cfg.medCedula       = cfg.medCedula       || '12345678';
 
   omniaShowGate('⏳','Verificando acceso…','Un momento por favor.');
   const permitido = await verificarAccesoOmnia();
@@ -1610,6 +1790,7 @@ function showView(v, el) {
   }
   if (v==='pos') { renderPosGrid(); setTimeout(()=>document.getElementById('pos-barcode').focus(),100); }
   if (v==='inventario') renderInv();
+  if (v==='recetas') { renderRxPacienteSelect(); renderRecetasEmitidas(); renderPacientes(); }
   if (v==='caja') renderCaja();
   if (v==='reportes') renderReportes();
 }
@@ -1624,6 +1805,9 @@ function showTab(id, el) {
   if (id==='r-ventas') renderHistorial();
   if (id==='r-top') renderTop();
   if (id==='r-cortes') renderCortes();
+  if (id==='rx-emitidas') renderRecetasEmitidas();
+  if (id==='rx-pacientes') renderPacientes();
+  if (id==='rx-nueva') renderRxPacienteSelect();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1713,6 +1897,8 @@ async function syncNow() {
         ventas:      db.ventas,
         movimientos: db.movimientos,
         cortes:      db.cortes,
+        pacientes:   db.pacientes,
+        recetas:     db.recetas,
       }
     });
     setSyncState(success ? 'ok' : 'error');
@@ -2044,6 +2230,18 @@ function guardarNegocioPro() {
   toast('Datos guardados ✓');
 }
 
+function guardarMedico() {
+  cfg.medNombre     = document.getElementById('cfg-med-nombre').value.trim();
+  cfg.medEspecialidad = document.getElementById('cfg-med-esp').value.trim();
+  cfg.medCedula     = document.getElementById('cfg-med-cedula').value.trim();
+  cfg.medCedulaEsp  = document.getElementById('cfg-med-cedula-esp').value.trim();
+  cfg.medTelefono   = document.getElementById('cfg-med-tel').value.trim();
+  cfg.medEmail      = document.getElementById('cfg-med-email').value.trim();
+  if (!cfg.medNombre || !cfg.medCedula) { toast('Indica al menos el nombre y la cédula profesional del médico','warn'); }
+  saveCfg();
+  toast('Datos del médico guardados ✓');
+}
+
 // ── LICENCIA ──────────────────────────────────────────────────────────────────
 // La validación ocurre contra el Panel Maestro de Omnia (mismo backend/hoja
 // "Licenses" que NovaPOS), no contra el Apps Script de datos del cliente
@@ -2130,6 +2328,12 @@ function activarModoPro(lic, sesion) {
   document.getElementById('cfg-rfc-pro').value    = cfg.rfc    || '';
   document.getElementById('cfg-tel-pro').value    = cfg.tel    || '';
   document.getElementById('cfg-dir-pro').value    = cfg.dir    || '';
+  document.getElementById('cfg-med-nombre').value     = cfg.medNombre       || '';
+  document.getElementById('cfg-med-esp').value        = cfg.medEspecialidad || '';
+  document.getElementById('cfg-med-cedula').value     = cfg.medCedula       || '';
+  document.getElementById('cfg-med-cedula-esp').value = cfg.medCedulaEsp    || '';
+  document.getElementById('cfg-med-tel').value        = cfg.medTelefono     || '';
+  document.getElementById('cfg-med-email').value      = cfg.medEmail        || '';
   // Cargar logo si existe
   if (cfg.logo) {
     document.getElementById('logo-preview').innerHTML = `<img src="${cfg.logo}" style="max-width:100%;max-height:100%;object-fit:contain">`;
@@ -2310,7 +2514,11 @@ function renderInv() {
   const prods = db.productos.filter(p=>{
     const mq = !q||(p.nombre.toLowerCase().includes(q)||p.barcode.includes(q));
     const mc = !catF||p.cat===catF;
-    const ms = stkF==='bajo'?(p.stock>0&&p.stock<=(p.stockmin||5)):stkF==='cero'?p.stock<=0:true;
+    const ms = stkF==='bajo'?(p.stock>0&&p.stock<=(p.stockmin||5))
+      :stkF==='cero'?p.stock<=0
+      :stkF==='porcaducar'?(isExpiringSoon(p.vence)&&!isExpired(p.vence))
+      :stkF==='caducado'?isExpired(p.vence)
+      :true;
     return mq&&mc&&ms;
   });
 
@@ -2318,6 +2526,8 @@ function renderInv() {
   document.getElementById('inv-val').textContent  = mxn(db.productos.reduce((s,p)=>s+p.precio*p.stock,0));
   document.getElementById('inv-bajo').textContent = db.productos.filter(p=>p.stock>0&&p.stock<=(p.stockmin||5)).length;
   document.getElementById('inv-cero').textContent = db.productos.filter(p=>p.stock<=0).length;
+  document.getElementById('inv-porcaducar').textContent = db.productos.filter(p=>isExpiringSoon(p.vence)&&!isExpired(p.vence)).length;
+  document.getElementById('inv-caducados').textContent  = db.productos.filter(p=>isExpired(p.vence)).length;
 
   const tbody = document.getElementById('inv-tbody');
   if (!prods.length) {
@@ -2326,7 +2536,7 @@ function renderInv() {
   }
   tbody.innerHTML = prods.map(p=>{
     const sc = p.stock<=0?'badge-rojo':p.stock<=(p.stockmin||5)?'badge-amber':'badge-verde';
-    const vb = p.vence ? `<span class="badge ${isExpiringSoon(p.vence)?'badge-amber':'badge-indigo'}">${p.vence}</span>` : '—';
+    const vb = p.vence ? `<span class="badge ${isExpired(p.vence)?'badge-rojo':isExpiringSoon(p.vence)?'badge-amber':'badge-indigo'}">${isExpired(p.vence)?'⚠ CADUCÓ ':''}${p.vence}</span>` : '—';
     return `<tr>
       <td><span style="font:500 11px var(--mono)">${p.barcode}</span></td>
       <td><strong>${p.nombre}</strong></td>
@@ -2370,15 +2580,16 @@ function renderPosGrid() {
     return;
   }
   grid.innerHTML = prods.map(p=>{
-    const nostock = p.stock<=0;
+    const caducado = isExpired(p.vence);
+    const nostock = p.stock<=0 || caducado;
     const low = p.stock>0&&p.stock<=(p.stockmin||5);
-    const sc = nostock?'badge-rojo':low?'badge-amber':'badge-verde';
+    const sc = p.stock<=0?'badge-rojo':low?'badge-amber':'badge-verde';
     return `<div class="pg-card${nostock?' no-stock':''}" onclick="addToTicket('${p.barcode}')">
       <div class="pg-code">${p.barcode}</div>
       <div class="pg-name">${p.nombre}</div>
       <div class="pg-foot">
         <span class="pg-price">${mxn(p.precio)}</span>
-        <span class="badge ${sc}">${p.stock}</span>
+        ${caducado ? `<span class="badge badge-rojo">⚠ CADUCÓ</span>` : `<span class="badge ${sc}">${p.stock}</span>`}
       </div>
     </div>`;
   }).join('');
@@ -2400,6 +2611,7 @@ function addToTicket(bc) {
   const p = db.productos.find(x=>x.barcode===bc);
   if (!p) return;
   if (p.stock<=0) { toast(`Sin stock: ${p.nombre}`,'warn'); return; }
+  if (isExpired(p.vence)) { toast(`⚠ "${p.nombre}" está caducado (venció ${p.vence}) — no se puede vender`,'err'); return; }
   const ex = ticket.find(t=>t.barcode===bc);
   if (ex) {
     if (ex.qty>=p.stock) { toast(`Stock máximo: ${p.stock}`,'warn'); return; }
@@ -2533,6 +2745,10 @@ async function confirmarVenta() {
     const p = db.productos.find(x=>x.barcode===t.barcode);
     if (!p || p.stock < t.qty) {
       toast(`Stock insuficiente de "${t.nombre}" — disponible: ${p?p.stock:0}`, 'err');
+      return;
+    }
+    if (isExpired(p.vence)) {
+      toast(`⚠ "${t.nombre}" caducó (${p.vence}) — retíralo del ticket`, 'err');
       return;
     }
   }
@@ -2753,6 +2969,376 @@ ${html}
 
 function focusBarcode() {
   setTimeout(()=>{ const el=document.getElementById('pos-barcode'); if(el) el.focus(); },150);
+}
+
+// ══════════════════════════════════════════════════════════
+//  PACIENTES
+// ══════════════════════════════════════════════════════════
+function openPacienteModal(id) {
+  editPacienteId = id || null;
+  const p = id ? db.pacientes.find(x=>x.id===id) : null;
+  document.getElementById('mpac-title').textContent = id ? '✏️ Editar paciente' : '🧑‍⚕️ Nuevo paciente';
+  document.getElementById('pac-nombre').value   = p?.nombre || '';
+  document.getElementById('pac-fnac').value     = p?.fechaNacimiento || '';
+  document.getElementById('pac-sexo').value     = p?.sexo || '';
+  document.getElementById('pac-tel').value      = p?.telefono || '';
+  document.getElementById('pac-dir').value      = p?.direccion || '';
+  document.getElementById('pac-alergias').value = p?.alergias || '';
+  document.getElementById('pac-cronicas').value = p?.cronicas || '';
+  document.getElementById('pac-notas').value    = p?.notas || '';
+  openModal('modal-paciente');
+}
+
+function guardarPaciente() {
+  const nombre = document.getElementById('pac-nombre').value.trim();
+  if (!nombre) { toast('El nombre del paciente es obligatorio','err'); return; }
+  let p = editPacienteId ? db.pacientes.find(x=>x.id===editPacienteId) : null;
+  const nuevo = !p;
+  if (nuevo) { p = { id: uid(), creado: new Date().toISOString() }; db.pacientes.push(p); }
+  p.nombre          = nombre;
+  p.fechaNacimiento = document.getElementById('pac-fnac').value;
+  p.sexo            = document.getElementById('pac-sexo').value;
+  p.telefono        = document.getElementById('pac-tel').value.trim();
+  p.direccion       = document.getElementById('pac-dir').value.trim();
+  p.alergias        = document.getElementById('pac-alergias').value.trim();
+  p.cronicas        = document.getElementById('pac-cronicas').value.trim();
+  p.notas           = document.getElementById('pac-notas').value.trim();
+  closeModal('modal-paciente');
+  saveAndSyncFast('pacientes', p);
+  renderPacientes();
+  renderRxPacienteSelect();
+  if (nuevo) { document.getElementById('rx-paciente').value = p.id; onRxPacienteChange(); }
+  toast('Paciente guardado ✓');
+}
+
+function editPaciente(id) { openPacienteModal(id); }
+
+function eliminarPaciente(id) {
+  if (!confirm('¿Eliminar este paciente? Sus recetas ya emitidas no se eliminarán.')) return;
+  db.pacientes = db.pacientes.filter(p=>p.id!==id);
+  saveAndDeleteFast('pacientes', id);
+  renderPacientes();
+  renderRxPacienteSelect();
+  toast('Paciente eliminado','warn');
+}
+
+function renderPacientes() {
+  const qEl = document.getElementById('rx-pac-q');
+  const tbody = document.getElementById('rx-pac-tbody');
+  if (!tbody) return;
+  const q = qEl ? qEl.value.toLowerCase() : '';
+  const list = db.pacientes.filter(p=>!q || p.nombre.toLowerCase().includes(q) || (p.telefono||'').includes(q));
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:30px">Sin pacientes registrados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(p=>`
+    <tr>
+      <td><strong>${p.nombre}</strong></td>
+      <td>${calcEdad(p.fechaNacimiento)!==''?calcEdad(p.fechaNacimiento):'—'}</td>
+      <td>${p.sexo||'—'}</td>
+      <td>${p.telefono||'—'}</td>
+      <td>${p.alergias ? `<span class="badge badge-rojo">${p.alergias}</span>` : '—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="editPaciente('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarPaciente('${p.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  RECETAS
+// ══════════════════════════════════════════════════════════
+function renderRxPacienteSelect() {
+  const sel = document.getElementById('rx-paciente');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Elige un paciente —</option>' +
+    db.pacientes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre))
+      .map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  if (cur && db.pacientes.find(p=>p.id===cur)) sel.value = cur;
+  onRxPacienteChange();
+}
+
+function onRxPacienteChange() {
+  const sel = document.getElementById('rx-paciente');
+  const info = document.getElementById('rx-paciente-info');
+  if (!sel || !info) return;
+  const p = db.pacientes.find(x=>x.id===sel.value);
+  if (!p) { info.style.display='none'; return; }
+  const edad = calcEdad(p.fechaNacimiento);
+  info.style.display='block';
+  info.innerHTML = `
+    ${edad!==''?`<strong>${edad} años</strong>`:''} ${p.sexo?'· '+p.sexo:''} ${p.telefono?'· 📞 '+p.telefono:''}
+    ${p.alergias?`<br>⚠️ <strong>Alergias:</strong> ${p.alergias}`:''}
+    ${p.cronicas?`<br>🩺 <strong>Antecedentes:</strong> ${p.cronicas}`:''}`;
+}
+
+function buscarMedInventario() {
+  const q = document.getElementById('rx-buscar-med').value.trim().toLowerCase();
+  const box = document.getElementById('rx-inv-results');
+  if (!q) { box.innerHTML=''; return; }
+  const prods = db.productos.filter(p=>p.nombre.toLowerCase().includes(q)||p.barcode.includes(q)).slice(0,8);
+  if (!prods.length) { box.innerHTML = `<p style="font-size:12px;color:var(--txt2)">Sin coincidencias en inventario — puedes agregarlo como medicamento manual.</p>`; return; }
+  box.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>Producto</th><th>Stock</th><th>Caducidad</th><th></th></tr></thead><tbody>` +
+    prods.map(p=>{
+      const caducado = isExpired(p.vence);
+      const porCaducar = !caducado && isExpiringSoon(p.vence);
+      const stockBadge = p.stock<=0 ? '<span class="badge badge-rojo">Sin existencia</span>' : `<span class="badge badge-verde">${p.stock} ${p.unidad||'pza'}</span>`;
+      const vBadge = !p.vence ? '—' : `<span class="badge ${caducado?'badge-rojo':porCaducar?'badge-amber':'badge-indigo'}">${caducado?'⚠ CADUCÓ ':''}${p.vence}</span>`;
+      return `<tr>
+        <td><strong>${p.nombre}</strong></td>
+        <td>${stockBadge}</td>
+        <td>${vBadge}</td>
+        <td><button class="btn btn-primary btn-sm" ${caducado?'disabled title="Caducado — elige otro medicamento"':''} onclick="addMedFromInventario('${p.id}')">+ Usar</button></td>
+      </tr>`;
+    }).join('') + `</tbody></table></div>`;
+}
+
+function addMedFromInventario(id) {
+  const p = db.productos.find(x=>x.id===id);
+  if (!p) return;
+  if (isExpired(p.vence)) { toast('Ese medicamento está caducado, elige otro del inventario','err'); return; }
+  rxMeds.push({
+    nombre: p.nombre, presentacion: p.unidad||'', indicaciones:'', cantidad:'',
+    deInventario:true, stockAlMomento:p.stock, vence:p.vence||''
+  });
+  document.getElementById('rx-buscar-med').value='';
+  document.getElementById('rx-inv-results').innerHTML='';
+  renderRxMeds();
+}
+
+function addMedManual() {
+  rxMeds.push({ nombre:'', presentacion:'', indicaciones:'', cantidad:'', deInventario:false, stockAlMomento:null, vence:'' });
+  renderRxMeds();
+}
+
+function updateMedField(i, field, value) {
+  if (!rxMeds[i]) return;
+  rxMeds[i][field] = value;
+}
+
+function removeMedLine(i) { rxMeds.splice(i,1); renderRxMeds(); }
+
+function renderRxMeds() {
+  const rows = document.getElementById('rx-meds-rows');
+  const empty = document.getElementById('rx-meds-empty');
+  if (!rows) return;
+  empty.style.display = rxMeds.length ? 'none' : 'block';
+  rows.innerHTML = rxMeds.map((m,i)=>`
+    <div class="card" style="padding:12px;margin-bottom:8px;background:var(--bg)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font:600 11px var(--sans);color:var(--txt2)">
+          ${m.deInventario ? `<span class="badge badge-verde">📦 En inventario${m.vence?` · vence ${m.vence}`:''}</span>` : `<span class="badge badge-gray">✍️ Manual</span>`}
+        </span>
+        <button class="t-del" onclick="removeMedLine(${i})" title="Quitar">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="field" style="margin:0"><label>Medicamento</label><input value="${(m.nombre||'').replace(/"/g,'&quot;')}" oninput="updateMedField(${i},'nombre',this.value)" placeholder="Nombre del medicamento"></div>
+        <div class="field" style="margin:0"><label>Presentación</label><input value="${(m.presentacion||'').replace(/"/g,'&quot;')}" oninput="updateMedField(${i},'presentacion',this.value)" placeholder="Ej: Caja c/10 tabs"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+        <div class="field" style="margin:0"><label>Indicaciones (dosis, frecuencia, duración)</label><input value="${(m.indicaciones||'').replace(/"/g,'&quot;')}" oninput="updateMedField(${i},'indicaciones',this.value)" placeholder="Ej: 1 tableta cada 8 horas por 7 días"></div>
+        <div class="field" style="margin:0"><label>Cantidad a surtir</label><input value="${(m.cantidad||'').replace(/"/g,'&quot;')}" oninput="updateMedField(${i},'cantidad',this.value)" placeholder="Ej: 1 caja"></div>
+      </div>
+    </div>`).join('');
+}
+
+function limpiarRx() {
+  rxMeds = [];
+  document.getElementById('rx-paciente').value = '';
+  document.getElementById('rx-diagnostico').value = '';
+  document.getElementById('rx-notas').value = '';
+  document.getElementById('rx-vigencia').value = 30;
+  document.getElementById('rx-buscar-med').value = '';
+  document.getElementById('rx-inv-results').innerHTML = '';
+  onRxPacienteChange();
+  renderRxMeds();
+}
+
+function guardarReceta() {
+  const pacId = document.getElementById('rx-paciente').value;
+  const paciente = db.pacientes.find(p=>p.id===pacId);
+  if (!paciente) { toast('Selecciona un paciente','err'); return; }
+  const diagnostico = document.getElementById('rx-diagnostico').value.trim();
+  if (!diagnostico) { toast('Indica el diagnóstico','err'); return; }
+  const medsValidos = rxMeds.filter(m=>(m.nombre||'').trim());
+  if (!medsValidos.length) { toast('Agrega al menos un medicamento','err'); return; }
+  if (!cfg.medNombre || !cfg.medCedula) {
+    toast('Configura los datos del médico en Configuración antes de generar recetas','err');
+    return;
+  }
+
+  const receta = {
+    id: uid(),
+    folio: 'R-'+String(db.recetas.length+1).padStart(4,'0'),
+    fecha: new Date().toISOString(),
+    pacienteId: paciente.id,
+    pacienteNombre: paciente.nombre,
+    pacienteEdad: calcEdad(paciente.fechaNacimiento),
+    pacienteSexo: paciente.sexo||'',
+    diagnostico,
+    notas: document.getElementById('rx-notas').value.trim(),
+    medicamentos: medsValidos,
+    vigenciaDias: parseInt(document.getElementById('rx-vigencia').value)||30,
+    medicoNombre: cfg.medNombre,
+    medicoCedula: cfg.medCedula,
+    medicoCedulaEsp: cfg.medCedulaEsp||'',
+    medicoEspecialidad: cfg.medEspecialidad||'',
+    farmaciaNombre: cfg.nombre||'',
+    farmaciaDireccion: cfg.dir||'',
+    farmaciaTelefono: cfg.tel||'',
+  };
+  db.recetas.push(receta);
+  save();
+  if (cfg.url) {
+    setSyncState('syncing');
+    sheetsUpsert('recetas', receta).then(ok=>setSyncState(ok?'ok':'error')).catch(()=>setSyncState('error'));
+  }
+
+  renderRecetasEmitidas();
+  mostrarReceta(receta);
+  limpiarRx();
+  toast('Receta generada ✓');
+}
+
+function renderRecetasEmitidas() {
+  const qEl = document.getElementById('rx-hist-q');
+  const tbody = document.getElementById('rx-emit-tbody');
+  if (!tbody) return;
+  const q = qEl ? qEl.value.toLowerCase() : '';
+  const list = db.recetas.filter(r =>
+    !q || r.folio.toLowerCase().includes(q) || r.pacienteNombre.toLowerCase().includes(q) || (r.diagnostico||'').toLowerCase().includes(q)
+  ).slice().sort((a,b)=> new Date(b.fecha)-new Date(a.fecha));
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:30px">Sin recetas emitidas</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(r=>{
+    const f = new Date(r.fecha);
+    const fStr = f.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'});
+    return `<tr>
+      <td>${fStr}</td>
+      <td><span style="font:600 12px var(--mono)">${r.folio}</span></td>
+      <td>${r.pacienteNombre}</td>
+      <td>${r.diagnostico}</td>
+      <td><span class="badge badge-indigo">${r.medicamentos.length}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="verReceta('${r.id}')">👁</button>
+        <button class="btn btn-indigo btn-sm" onclick="imprimirRecetaById('${r.id}')">🖨</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarReceta('${r.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function verReceta(id) {
+  const r = db.recetas.find(x=>x.id===id);
+  if (r) mostrarReceta(r);
+}
+
+function eliminarReceta(id) {
+  if (!confirm('¿Eliminar esta receta? Esta acción no se puede deshacer.')) return;
+  db.recetas = db.recetas.filter(r=>r.id!==id);
+  saveAndDeleteFast('recetas', id);
+  renderRecetasEmitidas();
+  toast('Receta eliminada','warn');
+}
+
+let recetaActual = null;
+
+function buildRecetaHTML(r, paraImprimir=false) {
+  const f = new Date(r.fecha);
+  const fStr = f.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+  const vig = new Date(f.getTime() + (r.vigenciaDias||30)*86400000);
+  const vigStr = vig.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+  const medsHTML = r.medicamentos.map((m,i)=>`
+    <div style="margin:10px 0;padding-bottom:8px;${i<r.medicamentos.length-1?'border-bottom:1px dashed #ccc':''}">
+      <div style="font-weight:700">${i+1}. ${m.nombre}${m.presentacion?` — ${m.presentacion}`:''}</div>
+      ${m.indicaciones?`<div style="font-size:12px;margin-top:2px">${m.indicaciones}</div>`:''}
+      ${m.cantidad?`<div style="font-size:11px;color:#666;margin-top:2px">Surtir: ${m.cantidad}</div>`:''}
+    </div>`).join('');
+
+  return `
+    <div style="text-align:center;margin-bottom:10px">
+      <div style="font-weight:800;font-size:${paraImprimir?'16px':'15px'};color:${paraImprimir?'#000':'var(--verde-dk)'}">${(r.farmaciaNombre||'Farmacia').toUpperCase()}</div>
+      ${r.farmaciaDireccion?`<div style="font-size:11px;color:#555">${r.farmaciaDireccion}</div>`:''}
+      ${r.farmaciaTelefono?`<div style="font-size:11px;color:#555">Tel: ${r.farmaciaTelefono}</div>`:''}
+    </div>
+    <div style="border-top:1px solid #999;border-bottom:1px solid #999;padding:8px 0;margin-bottom:10px">
+      <div style="font-weight:700">${r.medicoNombre}</div>
+      ${r.medicoEspecialidad?`<div style="font-size:12px">${r.medicoEspecialidad}</div>`:''}
+      <div style="font-size:12px">Céd. Prof. ${r.medicoCedula}${r.medicoCedulaEsp?` · Céd. Esp. ${r.medicoCedulaEsp}`:''}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px">
+      <span>Folio: <strong>${r.folio}</strong></span><span>${fStr}</span>
+    </div>
+    <div style="font-size:13px;margin-bottom:10px">
+      <div><strong>Paciente:</strong> ${r.pacienteNombre}${r.pacienteEdad!==''?` (${r.pacienteEdad} años)`:''}${r.pacienteSexo?`, ${r.pacienteSexo}`:''}</div>
+      <div style="margin-top:4px"><strong>Diagnóstico:</strong> ${r.diagnostico}</div>
+    </div>
+    <div style="font-size:${paraImprimir?'22px':'20px'};font-weight:800;margin:10px 0 4px">℞</div>
+    ${medsHTML}
+    ${r.notas?`<div style="margin-top:10px;font-size:12px;background:${paraImprimir?'transparent':'var(--bg)'};padding:${paraImprimir?'0':'8px'};border-radius:8px"><strong>Indicaciones generales:</strong> ${r.notas}</div>`:''}
+    <div style="margin-top:18px;font-size:11px;color:#666">Receta válida hasta: ${vigStr}</div>
+    <div style="margin-top:40px;text-align:center">
+      <div style="border-top:1px solid #333;width:70%;margin:0 auto"></div>
+      <div style="font-size:11px;margin-top:4px">Firma del médico</div>
+    </div>`;
+}
+
+function mostrarReceta(r) {
+  recetaActual = r;
+  document.getElementById('receta-preview-body').innerHTML = buildRecetaHTML(r, false);
+  document.getElementById('receta-folio-badge').textContent = r.folio;
+  openModal('modal-receta');
+}
+
+function imprimirRecetaActual() { if (recetaActual) imprimirReceta(recetaActual); }
+
+function imprimirRecetaById(id) {
+  const r = db.recetas.find(x=>x.id===id);
+  if (r) imprimirReceta(r);
+}
+
+function imprimirReceta(r) {
+  const html = buildRecetaHTML(r, true);
+  const win = window.open('', '_blank', 'width=650,height=800,scrollbars=yes');
+  win.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Receta ${r.folio}</title>
+<style>
+  @page { size: letter; margin: 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.5;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body>
+${html}
+<div class="no-print" style="margin-top:24px;text-align:center">
+  <button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer;background:#4f46e5;color:#fff;border:none;border-radius:6px">
+    🖨 Imprimir
+  </button>
+  <button onclick="window.close()" style="padding:8px 16px;font-size:14px;cursor:pointer;margin-left:8px;border:1px solid #ccc;border-radius:6px">
+    Cerrar
+  </button>
+</div>
+</body></html>`);
+  win.document.close();
+  win.focus();
+  try { win.addEventListener('afterprint', () => { try { win.close(); } catch(e){} }); } catch(e){}
+  setTimeout(() => { try { win.print(); } catch(e){} }, 400);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3010,6 +3596,27 @@ function loadDemoData() {
     {id:uid(),fecha:mkDate(0,16,30),tipo:'egreso',monto:120,concepto:'Gastos de limpieza'},
   ];
 
+  // Pacientes y receta de ejemplo
+  db.pacientes = [
+    {id:uid(),nombre:'María Fernanda López Ruiz',fechaNacimiento:'1990-04-12',sexo:'F',telefono:'228 123 4567',direccion:'Av. Reforma 123, Xalapa',alergias:'Penicilina',cronicas:'',notas:'',creado:mkDate(20)},
+    {id:uid(),nombre:'Carlos Alberto Hernández Pérez',fechaNacimiento:'1968-11-03',sexo:'M',telefono:'228 987 6543',direccion:'Calle Juárez 45, Xalapa',alergias:'',cronicas:'Diabetes tipo 2, hipertensión',notas:'',creado:mkDate(15)},
+  ];
+  db.recetas = [
+    {
+      id:uid(), folio:'R-0001', fecha:mkDate(2),
+      pacienteId:db.pacientes[0].id, pacienteNombre:db.pacientes[0].nombre, pacienteEdad:calcEdad(db.pacientes[0].fechaNacimiento), pacienteSexo:db.pacientes[0].sexo,
+      diagnostico:'Faringitis aguda',
+      notas:'Reposo, abundantes líquidos, acudir si hay fiebre mayor a 39°C.',
+      medicamentos:[
+        {nombre:prods[1].nombre, presentacion:prods[1].unidad, indicaciones:'1 tableta cada 8 horas por 5 días', cantidad:'1 caja', deInventario:true, stockAlMomento:prods[1].stock, vence:prods[1].vence},
+        {nombre:'Paracetamol 500mg', presentacion:'tabletas', indicaciones:'1 tableta cada 8 horas si hay dolor o fiebre', cantidad:'1 caja', deInventario:false, stockAlMomento:null, vence:''},
+      ],
+      vigenciaDias:30,
+      medicoNombre:'Dr. Roberto García Sánchez', medicoCedula:'12345678', medicoCedulaEsp:'', medicoEspecialidad:'Medicina General',
+      farmaciaNombre:cfg.nombre||'FarmaPos Demo', farmaciaDireccion:cfg.dir||'', farmaciaTelefono:cfg.tel||'',
+    }
+  ];
+
   save();
 }
 
@@ -3018,7 +3625,7 @@ function loadDemoData() {
 // ══════════════════════════════════════════════════════════
 function resetDemo() {
   if (!confirm('¿Reiniciar todos los datos de demostración?')) return;
-  db = {productos:[],ventas:[],movimientos:[],caja:{abierta:false,fondo:0,fechaApertura:null},cortes:[]};
+  db = {productos:[],ventas:[],movimientos:[],caja:{abierta:false,fondo:0,fechaApertura:null},cortes:[],pacientes:[],recetas:[]};
   loadDemoData();
   ticket=[];
   renderTicket();
@@ -3026,6 +3633,9 @@ function resetDemo() {
   renderInv();
   renderCaja();
   renderReportes();
+  renderRxPacienteSelect();
+  renderRecetasEmitidas();
+  renderPacientes();
   updateBadge();
   document.getElementById('caja-closed').style.display='none';
   document.getElementById('caja-open').style.display='block';
@@ -3045,13 +3655,13 @@ function exportDB() {
 
 async function borrarTodo() {
   if (!confirm('⚠️ ¿Borrar TODOS los datos locales y en Google Sheets? Esta acción no se puede deshacer.')) return;
-  if (!confirm('Última confirmación: se eliminarán productos, ventas, movimientos y cortes.')) return;
+  if (!confirm('Última confirmación: se eliminarán productos, ventas, movimientos, cortes, pacientes y recetas.')) return;
   // 1. Primero limpiar en Sheets con arrays vacíos (evita que el sync los restaure)
   if (cfg.url) {
     setSyncState('syncing', 'Borrando en Sheets…');
     await sheetsPost({
       action: 'sync_all',
-      data: { productos:[], ventas:[], movimientos:[], cortes:[] }
+      data: { productos:[], ventas:[], movimientos:[], cortes:[], pacientes:[], recetas:[] }
     });
   }
   // 2. Borrar local
