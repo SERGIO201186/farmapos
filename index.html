@@ -535,6 +535,14 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   #bottom-nav{display:flex}
   #sync-label{display:none}
 
+  /* Barra superior compacta: los botones de acción (Soporte, Actualizar,
+     Instalar) y el badge de Modo Caja se quedan solo con su ícono — sin
+     esto, en un celular angosto (~360-375px) no cabían en una sola línea
+     junto al logo y se encimaban/se cortaban. */
+  #topbar{padding:0 10px;gap:4px}
+  .btn-label{display:none}
+  #topbar .btn{padding:7px 9px}
+
   /* POS mobile: stack vertically, ticket on top */
   #view-pos.active{flex-direction:column}
   #pos-right{width:100%;border-right:none;border-bottom:1px solid var(--border)}
@@ -553,6 +561,13 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
   #pos-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 
+  /* Formularios de dos columnas (datos del negocio, del médico, modales de
+     producto/paciente, pares de botones, etc.) — se apilan en una sola
+     columna para que las etiquetas y los campos no queden apretados.
+     Van por style inline en vez de una clase compartida, así que se
+     sobreescriben por atributo con !important. */
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+
   /* bottom nav safe area */
   #toast{bottom:calc(var(--bottom-h) + 8px)}
 }
@@ -560,6 +575,18 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 @media(max-width:380px){
   #pos-grid{grid-template-columns:1fr 1fr}
   .tiles{grid-template-columns:1fr 1fr}
+
+  /* En celulares muy angostos (~320-360px) el badge de caja (con un saldo
+     de varias cifras, ej. "$12,345.50") y los 6 íconos de la barra inferior
+     no cabían — el badge quedaba parcialmente cortado fuera de la pantalla
+     y los botones de abajo se salían del ancho disponible. */
+  a[title="Contactar soporte"]{display:none}
+  .logo-icon{width:28px;height:28px;font-size:14px;border-radius:8px}
+  .logo{font-size:.95rem}
+  #caja-badge{padding:5px 8px}
+
+  .bnav-btn{min-width:44px;padding:4px 2px}
+  .bnav-btn .bicon{font-size:19px}
 }
 
 @media(min-width:641px){
@@ -655,12 +682,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <button class="dnav-btn" data-view="config" onclick="showView('config',this)"><span class="icon">⚙️</span>Config</button>
   </nav>
   <div class="top-spacer"></div>
-  <span id="modo-caja-badge" class="badge badge-amber" style="display:none;margin-right:6px" title="Este dispositivo solo puede vender y cobrar — la versión completa está en otro dispositivo">🖥️ Modo Caja</span>
-  <button id="btn-actualizar-sheets" class="btn btn-ghost btn-sm" style="display:none;margin-right:4px" onclick="actualizarDesdeSheets()" title="Trae las ventas y cambios hechos desde otros dispositivos (caja)">🔄 Actualizar</button>
+  <span id="modo-caja-badge" class="badge badge-amber" style="display:none;margin-right:6px" title="Este dispositivo solo puede vender y cobrar — la versión completa está en otro dispositivo">🖥️ <span class="btn-label">Modo </span>Caja</span>
+  <button id="btn-actualizar-sheets" class="btn btn-ghost btn-sm" style="display:none;margin-right:4px" onclick="actualizarDesdeSheets()" title="Trae las ventas y cambios hechos desde otros dispositivos (caja)">🔄<span class="btn-label"> Actualizar</span></button>
   <div id="sync-dot" title="Estado de sincronización"></div>
   <span id="sync-label" style="font-size:11px;color:var(--txt3)">Sin conectar</span>
-  <a href="https://wa.me/525547894225?text=Hola%2C%20necesito%20soporte%20con%20FarmaPos%20PRO" target="_blank" class="btn btn-ghost btn-sm" style="margin:0 4px" title="Contactar soporte">💬 Soporte</a>
-  <button id="btn-install" onclick="installPWA()" style="display:none" class="btn btn-ghost btn-sm" title="Instalar aplicación">📲 Instalar</button>
+  <a href="https://wa.me/525547894225?text=Hola%2C%20necesito%20soporte%20con%20FarmaPos%20PRO" target="_blank" class="btn btn-ghost btn-sm" style="margin:0 4px" title="Contactar soporte">💬<span class="btn-label"> Soporte</span></a>
+  <button id="btn-install" onclick="installPWA()" style="display:none" class="btn btn-ghost btn-sm" title="Instalar aplicación">📲<span class="btn-label"> Instalar</span></button>
   <div id="caja-badge">
     <span class="lbl">Caja&nbsp;</span>
     <span class="val" id="badge-saldo">$0.00</span>
