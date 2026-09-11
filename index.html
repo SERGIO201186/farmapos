@@ -1060,7 +1060,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:1.4rem">🟢</span>
           <div>
-            <div style="font:700 14px var(--sans);color:var(--verde-dk)">Licencia PRO activa</div>
+            <div id="pro-license-title" style="font:700 14px var(--sans);color:var(--verde-dk)">Licencia PRO activa</div>
             <div id="pro-expiry-badge" style="font-size:12px;color:var(--verde-dk);margin-top:2px"></div>
           </div>
         </div>
@@ -1148,6 +1148,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <div class="card-hd">⚠️ Zona de peligro</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="exportDB()">⬇ Exportar datos</button>
+        <button class="btn btn-danger btn-sm" onclick="borrarDatosPrueba()">🧹 Borrar datos de prueba</button>
         <button class="btn btn-danger btn-sm" onclick="borrarTodo()">🗑 Borrar todos los datos</button>
       </div>
     </div>
@@ -1744,7 +1745,13 @@ function calcEdad(fechaNac){
 // ══════════════════════════════════════════════════════════
 async function initApp() {
   load();
-  if (!db.productos.length) loadDemoData();
+  // Si el usuario ya borró sus datos de prueba a propósito (botón "Borrar
+  // datos de prueba"/"Borrar todos los datos"), no se le debe volver a
+  // sembrar el catálogo/pacientes de ejemplo solo porque el catálogo quedó
+  // vacío — antes esto pasaba SIEMPRE que db.productos.length era 0, así que
+  // un negocio real que limpiaba su catálogo para cargar su inventario real
+  // recibía de vuelta los productos y pacientes de muestra en cada carga.
+  if (!db.productos.length && !localStorage.getItem('fp2_no_autoseed')) loadDemoData();
   cfg.nombre = cfg.nombre || 'FarmaPos Demo';
   cfg.medNombre       = cfg.medNombre       || 'Dr. Roberto García Sánchez';
   cfg.medEspecialidad = cfg.medEspecialidad || 'Medicina General';
@@ -2206,9 +2213,12 @@ async function guardarConfigEnSheets() {
     {key:'version',         value:'2.0'},
     {key:'ultima_actualizacion', value:new Date().toISOString()},
   ];
+  let ok = true;
   for (const p of pairs) {
-    await sheetsPost({action:'upsert', sheet:'config', data:p});
+    const success = await sheetsPost({action:'upsert', sheet:'config', data:p});
+    if (!success) ok = false;
   }
+  return ok;
 }
 
 function guardarNegocio() {
@@ -2221,7 +2231,7 @@ function guardarNegocio() {
   toast('Datos del negocio guardados ✓ — Se verán reflejados en tus tickets');
 }
 
-function guardarNegocioPro() {
+async function guardarNegocioPro() {
   // Pro panel inputs (mirrors to cfg)
   cfg.nombre = document.getElementById('cfg-nombre-pro').value.trim();
   cfg.rfc    = document.getElementById('cfg-rfc-pro').value.trim();
@@ -2233,7 +2243,17 @@ function guardarNegocioPro() {
   document.getElementById('cfg-tel').value    = cfg.tel;
   document.getElementById('cfg-dir').value    = cfg.dir;
   saveCfg();
-  toast('Datos guardados ✓');
+  // guardarConfigEnSheets() ya existía pero nunca se llamaba desde aquí: los
+  // datos del negocio se guardaban solo en localStorage y la pestaña "config"
+  // del Google Sheet del cliente se quedaba vacía para siempre.
+  if (cfg.url) {
+    setSyncState('syncing');
+    const ok = await guardarConfigEnSheets();
+    setSyncState(ok ? 'ok' : 'error');
+    toast(ok ? 'Datos guardados ✓ — sincronizados con Google Sheets' : 'Datos guardados localmente, pero falló la sincronización con Sheets', ok ? 'ok' : 'warn');
+  } else {
+    toast('Datos guardados ✓');
+  }
 }
 
 function guardarMedico() {
@@ -2283,12 +2303,12 @@ async function verificarLicencia() {
     }
 
     localStorage.setItem('fp2_pro_session', JSON.stringify({
-      clave: input, expiry: j.expiresAt || null, activadoEn: new Date().toISOString()
+      clave: input, expiry: j.expiresAt || null, type: j.type || '', activadoEn: new Date().toISOString()
     }));
 
     closeModal('modal-licencia');
     document.getElementById('licencia-input').value = '';
-    activarModoPro({ expiry: j.expiresAt || null });
+    activarModoPro({ expiry: j.expiresAt || null, type: j.type || '' });
     toast('Licencia activada — Bienvenido ✓');
   } catch(e) {
     errEl.textContent = '⚠️ No se pudo contactar al servidor de validación. Revisa tu conexión.';
@@ -2312,12 +2332,12 @@ async function verificarSesionGuardada() {
       toast(j.status === 'expired' ? 'Tu licencia PRO venció. Renuévala con tu proveedor.' : 'Tu acceso PRO fue revocado. Contacta a tu proveedor.', 'warn');
       return;
     }
-    localStorage.setItem('fp2_pro_session', JSON.stringify({ ...sesion, expiry: j.expiresAt || null }));
-    activarModoPro({ expiry: j.expiresAt || null });
+    localStorage.setItem('fp2_pro_session', JSON.stringify({ ...sesion, expiry: j.expiresAt || null, type: j.type || '' }));
+    activarModoPro({ expiry: j.expiresAt || null, type: j.type || '' });
   } catch(e) {
     // Sin conexión: permite seguir trabajando en modo PRO offline con la última sesión válida conocida,
     // pero no renueva la validación hasta que vuelva a haber red.
-    activarModoPro({ expiry: sesion.expiry });
+    activarModoPro({ expiry: sesion.expiry, type: sesion.type || '' });
   }
 }
 
@@ -2350,13 +2370,20 @@ function activarModoPro(lic, sesion) {
   // Badge de vencimiento
   const badge = document.getElementById('pro-expiry-badge');
   if (lic.expiry) {
-    const dias = Math.ceil((new Date(lic.expiry+'T23:59:59') - new Date()) / 86400000);
+    // lic.expiry ya viene como ISO completo (con hora y "Z") desde el backend —
+    // antes se le concatenaba 'T23:59:59', lo que producía una fecha inválida
+    // (y por lo tanto "Vence en NaN días").
+    const dias = Math.ceil((new Date(lic.expiry) - new Date()) / 86400000);
     badge.textContent = `Vence en ${dias} días`;
     badge.className = 'badge ' + (dias < 10 ? 'badge-amber' : 'badge-verde');
   } else {
     badge.textContent = 'Licencia permanente';
     badge.className = 'badge badge-verde';
   }
+  // Distingue una licencia demo (temporal) de una PRO real: antes ambas
+  // mostraban siempre "Licencia PRO activa", aunque fuera una clave de demo.
+  const tituloLic = document.getElementById('pro-license-title');
+  if (tituloLic) tituloLic.textContent = lic.type === 'demo' ? 'Licencia DEMO activa' : 'Licencia PRO activa';
   // Restaurar config de Sheets si existe
   if (cfg.url) {
     document.getElementById('cfg-url').value = cfg.url;
@@ -3541,6 +3568,7 @@ function renderCortes() {
 //  DEMO DATA
 // ══════════════════════════════════════════════════════════
 function loadDemoData() {
+  localStorage.removeItem('fp2_no_autoseed');
   const mkDate = (daysAgo, h=10, m=0) => {
     const d=new Date(); d.setDate(d.getDate()-daysAgo);
     d.setHours(h,m,0,0); return d.toISOString();
@@ -3672,9 +3700,52 @@ async function borrarTodo() {
   }
   // 2. Borrar local
   localStorage.removeItem('fp2_db');
+  // Evita que initApp() vuelva a sembrar el catálogo/pacientes de ejemplo al
+  // recargar solo porque el catálogo quedó en 0 productos (ver initApp()).
+  localStorage.setItem('fp2_no_autoseed', '1');
   setSyncState('idle');
   toast('Datos eliminados ✓','warn');
   setTimeout(()=>location.reload(), 800);
+}
+
+// Borra específicamente los datos de PRUEBA (el catálogo, ventas, pacientes
+// y recetas de muestra con los que arranca la demo) sin tocar la licencia ni
+// los datos del negocio (nombre, RFC, teléfono, dirección) que el usuario ya
+// haya configurado — a diferencia de "Borrar todos los datos", que también
+// resetea eso. Pensado para cuando un negocio real activa su PRO y quiere
+// arrancar con su catálogo real en vez de los medicamentos/pacientes de
+// ejemplo (Dr. Roberto García Sánchez, etc.) que trae la demo.
+async function borrarDatosPrueba() {
+  if (!confirm('¿Borrar los datos de prueba (productos, ventas, pacientes y recetas de ejemplo)? Tu configuración del negocio y tu licencia no se tocan. Esta acción no se puede deshacer.')) return;
+
+  db.productos = []; db.ventas = []; db.movimientos = []; db.cortes = [];
+  db.pacientes = []; db.recetas = [];
+  db.caja = { abierta:false, fondo:0, fechaApertura:null };
+  save();
+  localStorage.setItem('fp2_no_autoseed', '1');
+
+  if (cfg.url) {
+    setSyncState('syncing', 'Borrando datos de prueba en Sheets…');
+    const ok = await sheetsPost({
+      action: 'sync_all',
+      data: { productos:[], ventas:[], movimientos:[], cortes:[], pacientes:[], recetas:[] }
+    });
+    setSyncState(ok ? 'idle' : 'error');
+  }
+
+  ticket = [];
+  renderTicket();
+  renderPosGrid();
+  renderInv();
+  renderCaja();
+  renderReportes();
+  renderRxPacienteSelect();
+  renderRecetasEmitidas();
+  renderPacientes();
+  updateBadge();
+  document.getElementById('caja-closed').style.display = 'block';
+  document.getElementById('caja-open').style.display    = 'none';
+  toast('Datos de prueba eliminados ✓ — tu catálogo está listo para tus productos reales', 'warn');
 }
 
 // ══════════════════════════════════════════════════════════
