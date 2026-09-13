@@ -3932,6 +3932,44 @@ var qrcode = function() {
 
 <script>
 // ══════════════════════════════════════════════════════════
+//  MIGRACIÓN DE CLAVES DE localStorage (una sola vez, corre antes que
+//  cualquier otra cosa en este script)
+//
+//  Hasta ahora esta app guardaba sus datos bajo claves genéricas
+//  ('fp2_db', 'fp2_cfg', 'fp2_pro_session', etc.) — el mismo patrón de
+//  nombres que usa NovaPOS, su app hermana de Omnia Technology. localStorage
+//  se comparte por ORIGEN del navegador (dominio), no por repositorio ni
+//  por backend: si FarmaPos y NovaPOS quedan publicados bajo el mismo
+//  dominio (aunque sea en rutas distintas, como suele pasar con GitHub
+//  Pages), ambas apps leían y sobreescribían literalmente las mismas
+//  claves — de ahí que una mostrara datos de la otra sin que compartan
+//  ni código ni Apps Script.
+//
+//  La corrección es renombrar las claves de FarmaPos a algo que no pueda
+//  coincidir con las de NovaPOS. Esto copia una sola vez lo que ya hubiera
+//  bajo los nombres viejos a los nuevos (para no perder los datos de
+//  clientes que ya venían usando la app) y no vuelve a tocar los nombres
+//  viejos después. Las claves 'omnia_*' SÍ siguen siendo compartidas a
+//  propósito — identifican el dispositivo ante el Panel Maestro central de
+//  licencias, común a todos los productos de Omnia.
+(function migrarClavesLocalStorage() {
+  const mapa = {
+    fp2_db: 'farmapos_db',
+    fp2_cfg: 'farmapos_cfg',
+    fp2_pro_session: 'farmapos_pro_session',
+    fp2_no_autoseed: 'farmapos_no_autoseed',
+    fp2_citas_notificadas: 'farmapos_citas_notificadas',
+  };
+  try {
+    Object.entries(mapa).forEach(([vieja, nueva]) => {
+      if (localStorage.getItem(nueva) === null && localStorage.getItem(vieja) !== null) {
+        localStorage.setItem(nueva, localStorage.getItem(vieja));
+      }
+    });
+  } catch(e) { /* localStorage no disponible (modo incógnito, etc.) — no hay nada que migrar */ }
+})();
+
+// ══════════════════════════════════════════════════════════
 //  APPS SCRIPT CODE (for user to copy)
 // ══════════════════════════════════════════════════════════
 const APPS_SCRIPT_CODE = `
@@ -4412,11 +4450,11 @@ let toastT;
 //  PERSIST
 // ══════════════════════════════════════════════════════════
 function save() {
-  try { localStorage.setItem('fp2_db', JSON.stringify(db)); }
+  try { localStorage.setItem('farmapos_db', JSON.stringify(db)); }
   catch(e) { console.error('No se pudo guardar localmente:', e); toast('⚠️ No se pudo guardar localmente (¿modo incógnito o memoria llena?)','warn'); }
 }
 function saveCfg() {
-  try { localStorage.setItem('fp2_cfg', JSON.stringify(cfg)); }
+  try { localStorage.setItem('farmapos_cfg', JSON.stringify(cfg)); }
   catch(e) { console.error('No se pudo guardar configuración:', e); }
 }
 function guardarAnchoTicket() {
@@ -4426,8 +4464,8 @@ function guardarAnchoTicket() {
 }
 function load() {
   try {
-    const d = localStorage.getItem('fp2_db');
-    const c = localStorage.getItem('fp2_cfg');
+    const d = localStorage.getItem('farmapos_db');
+    const c = localStorage.getItem('farmapos_cfg');
     if (d) db  = JSON.parse(d);
     if (c) cfg = { ...cfg, ...JSON.parse(c) };
     db.pacientes = db.pacientes || [];
@@ -4436,8 +4474,8 @@ function load() {
     cfg.rol = cfg.rol || 'completo';
   } catch(e) {
     console.error('Datos locales corruptos, se reinicia el almacenamiento:', e);
-    localStorage.removeItem('fp2_db');
-    localStorage.removeItem('fp2_cfg');
+    localStorage.removeItem('farmapos_db');
+    localStorage.removeItem('farmapos_cfg');
   }
 }
 
@@ -4459,7 +4497,7 @@ function load() {
 function generarVinculoCaja() {
   if (!cfg.url) { toast('Primero conecta tu Google Sheets aquí arriba (sección "Conexión con Google Sheets")','warn'); return; }
   let clave = '';
-  try { clave = (JSON.parse(localStorage.getItem('fp2_pro_session')||'{}').clave) || ''; } catch(e) {}
+  try { clave = (JSON.parse(localStorage.getItem('farmapos_pro_session')||'{}').clave) || ''; } catch(e) {}
   if (!clave) { toast('No se encontró una licencia PRO activa en este dispositivo','err'); return; }
 
   const params = new URLSearchParams({ rol:'caja', sheet:cfg.url, clave, nombre:cfg.nombre||'' });
@@ -4525,7 +4563,7 @@ function procesarVinculacionDesdeURL() {
     // Se guarda sin expiresAt: verificarSesionGuardada() la valida y la
     // completa contra el servidor en el primer arranque, igual que si se
     // hubiera tecleado la clave a mano en "Verificar Licencia".
-    localStorage.setItem('fp2_pro_session', JSON.stringify({
+    localStorage.setItem('farmapos_pro_session', JSON.stringify({
       clave, expiry: null, type: '', activadoEn: new Date().toISOString()
     }));
   }
@@ -4653,7 +4691,7 @@ async function initApp() {
   // vacío — antes esto pasaba SIEMPRE que db.productos.length era 0, así que
   // un negocio real que limpiaba su catálogo para cargar su inventario real
   // recibía de vuelta los productos y pacientes de muestra en cada carga.
-  if (!db.productos.length && !localStorage.getItem('fp2_no_autoseed')) loadDemoData();
+  if (!db.productos.length && !localStorage.getItem('farmapos_no_autoseed')) loadDemoData();
   cfg.nombre = cfg.nombre || 'FarmaPos Demo';
   cfg.medNombre       = cfg.medNombre       || 'Dr. Roberto García Sánchez';
   cfg.medEspecialidad = cfg.medEspecialidad || 'Medicina General';
@@ -5241,7 +5279,7 @@ async function verificarLicencia() {
       return;
     }
 
-    localStorage.setItem('fp2_pro_session', JSON.stringify({
+    localStorage.setItem('farmapos_pro_session', JSON.stringify({
       clave: input, expiry: j.expiresAt || null, type: j.type || '', activadoEn: new Date().toISOString()
     }));
 
@@ -5259,19 +5297,19 @@ async function verificarLicencia() {
 }
 
 async function verificarSesionGuardada() {
-  const raw = localStorage.getItem('fp2_pro_session');
+  const raw = localStorage.getItem('farmapos_pro_session');
   if (!raw) return;
   let sesion;
-  try { sesion = JSON.parse(raw); } catch(e) { localStorage.removeItem('fp2_pro_session'); return; }
-  if (!sesion.clave) { localStorage.removeItem('fp2_pro_session'); return; }
+  try { sesion = JSON.parse(raw); } catch(e) { localStorage.removeItem('farmapos_pro_session'); return; }
+  if (!sesion.clave) { localStorage.removeItem('farmapos_pro_session'); return; }
   try {
     const j = await consultarLicenciaOmnia(sesion.clave);
     if (j.status !== 'active') {
-      localStorage.removeItem('fp2_pro_session');
+      localStorage.removeItem('farmapos_pro_session');
       toast(j.status === 'expired' ? 'Tu licencia PRO venció. Renuévala con tu proveedor.' : 'Tu acceso PRO fue revocado. Contacta a tu proveedor.', 'warn');
       return;
     }
-    localStorage.setItem('fp2_pro_session', JSON.stringify({ ...sesion, expiry: j.expiresAt || null, type: j.type || '' }));
+    localStorage.setItem('farmapos_pro_session', JSON.stringify({ ...sesion, expiry: j.expiresAt || null, type: j.type || '' }));
     activarModoPro({ expiry: j.expiresAt || null, type: j.type || '' });
   } catch(e) {
     // Sin conexión: permite seguir trabajando en modo PRO offline con la última sesión válida conocida,
@@ -5341,7 +5379,7 @@ function activarModoPro(lic, sesion) {
 
 function cerrarSesionPro() {
   if (!confirm('¿Cerrar sesión PRO? Volverás al modo demo.')) return;
-  localStorage.removeItem('fp2_pro_session');
+  localStorage.removeItem('farmapos_pro_session');
   modoProActivo = false;
   document.getElementById('cfg-demo-panel').style.display = 'block';
   document.getElementById('cfg-pro-panel').style.display  = 'none';
@@ -5430,12 +5468,12 @@ function pedirPermisoNotificaciones() {
 // ══════════════════════════════════════════════════════════
 const CITAS_POLL_MS = 180000; // 3 minutos
 let citasNotificadas = new Set();
-try { citasNotificadas = new Set(JSON.parse(localStorage.getItem('fp2_citas_notificadas')||'[]')); } catch(e) {}
+try { citasNotificadas = new Set(JSON.parse(localStorage.getItem('farmapos_citas_notificadas')||'[]')); } catch(e) {}
 
 function marcarCitaNotificada(id) {
   citasNotificadas.add(id);
   // Tope de 300 para que la lista guardada no crezca para siempre.
-  localStorage.setItem('fp2_citas_notificadas', JSON.stringify([...citasNotificadas].slice(-300)));
+  localStorage.setItem('farmapos_citas_notificadas', JSON.stringify([...citasNotificadas].slice(-300)));
 }
 
 async function chequearCitasNuevas() {
@@ -6821,7 +6859,7 @@ function renderCortes() {
 //  DEMO DATA
 // ══════════════════════════════════════════════════════════
 function loadDemoData() {
-  localStorage.removeItem('fp2_no_autoseed');
+  localStorage.removeItem('farmapos_no_autoseed');
   const mkDate = (daysAgo, h=10, m=0) => {
     const d=new Date(); d.setDate(d.getDate()-daysAgo);
     d.setHours(h,m,0,0); return d.toISOString();
@@ -6953,10 +6991,10 @@ async function borrarTodo() {
     });
   }
   // 2. Borrar local
-  localStorage.removeItem('fp2_db');
+  localStorage.removeItem('farmapos_db');
   // Evita que initApp() vuelva a sembrar el catálogo/pacientes de ejemplo al
   // recargar solo porque el catálogo quedó en 0 productos (ver initApp()).
-  localStorage.setItem('fp2_no_autoseed', '1');
+  localStorage.setItem('farmapos_no_autoseed', '1');
   setSyncState('idle');
   toast('Datos eliminados ✓','warn');
   setTimeout(()=>location.reload(), 800);
@@ -6976,7 +7014,7 @@ async function borrarDatosPrueba() {
   db.pacientes = []; db.recetas = [];
   db.caja = { abierta:false, fondo:0, fechaApertura:null };
   save();
-  localStorage.setItem('fp2_no_autoseed', '1');
+  localStorage.setItem('farmapos_no_autoseed', '1');
 
   if (cfg.url) {
     setSyncState('syncing', 'Borrando datos de prueba en Sheets…');
