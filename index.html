@@ -1171,6 +1171,37 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="guardarBranding()">💾 Guardar branding</button>
     </div>
 
+    <div class="card">
+      <div class="card-hd">🖋️ Diseño de la receta</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">Elige cómo se ve e imprime la receta médica — usa el mismo logo de "Logo y Branding" de arriba.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="field" style="margin:0">
+          <label>Estilo</label>
+          <select id="cfg-rx-estilo" onchange="previewDisenoReceta()">
+            <option value="clasico">Clásico</option>
+            <option value="moderno">Moderno</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Color de acento</label>
+          <input type="color" id="cfg-rx-color" value="#4f46e5" style="height:42px;padding:4px;width:100%" oninput="previewDisenoReceta()">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Tamaño de papel al imprimir</label>
+          <select id="cfg-rx-papel">
+            <option value="media">Media carta</option>
+            <option value="carta">Carta completa</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="guardarDisenoReceta()">💾 Guardar diseño</button>
+
+      <div style="margin-top:18px">
+        <label style="display:block;margin-bottom:8px;font-weight:600;font-size:13px">Vista previa</label>
+        <div id="rx-diseno-preview" style="border:1px solid var(--border);border-radius:8px;padding:18px;background:#fff;max-width:360px;margin:0 auto"></div>
+      </div>
+    </div>
+
       <div id="sheets-status-box" class="sheets-status">
         <span id="sheets-dot">⚪</span>
         <span id="sheets-txt">Sin configurar — los datos se guardan localmente</span>
@@ -1541,6 +1572,13 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <span id="receta-folio-badge" class="badge badge-indigo"></span>
     </div>
     <div id="receta-preview-body" style="max-height:60vh;overflow-y:auto;padding:20px 18px;font-family:var(--sans);font-size:13px;line-height:1.55;border-bottom:2px dashed var(--border2)"></div>
+    <div style="padding:10px 16px 0;display:flex;align-items:center;gap:8px">
+      <label style="font-size:12px;color:var(--txt2);white-space:nowrap">Tamaño de impresión</label>
+      <select id="rx-print-papel" style="flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--border);font:13px var(--sans)">
+        <option value="media">Media carta</option>
+        <option value="carta">Carta completa</option>
+      </select>
+    </div>
     <div class="ticket-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-receta')">✕ Cerrar</button>
       <button class="btn btn-indigo" style="flex:2" onclick="imprimirRecetaActual()">🖨 Imprimir receta</button>
@@ -4217,6 +4255,7 @@ function guardarCita(cita, telefono) {
 let db = { productos:[], ventas:[], movimientos:[], caja:{abierta:false,fondo:0,fechaApertura:null}, cortes:[], pacientes:[], recetas:[], citas:[] };
 let cfg = { url:'', nombre:'FarmaPos Demo', rfc:'', tel:'', dir:'', ticketAncho:'80',
   medNombre:'', medCedula:'', medCedulaEsp:'', medEspecialidad:'', medTelefono:'', medEmail:'',
+  rxEstilo:'clasico', rxColor:'#4f46e5', rxPapel:'media', // diseño y tamaño de papel de la receta impresa
   rol:'completo' }; // rol: 'completo' (doctor/dueño, todas las secciones) o 'caja' (dispositivo de mostrador, solo Venta+Caja)
 let ticket = [];
 let rxMeds = [];
@@ -4874,6 +4913,7 @@ function previewLogo() {
     const preview = document.getElementById('logo-preview');
     preview.innerHTML = `<img src="${base64}" style="max-width:100%;max-height:100%;object-fit:contain">`;
     document.getElementById('ticket-logo-preview').innerHTML = `<img src="${base64}" style="max-height:40px;object-fit:contain">`;
+    previewDisenoReceta();
   };
   reader.readAsDataURL(input.files[0]);
 }
@@ -4883,6 +4923,7 @@ function limpiarLogo() {
   document.getElementById('logo-preview').innerHTML = '📷';
   document.getElementById('ticket-logo-preview').innerHTML = '---logo---';
   saveCfg();
+  previewDisenoReceta();
   toast('Logo removido');
 }
 function guardarBranding() {
@@ -4893,7 +4934,30 @@ function guardarBranding() {
   saveCfg();
   document.getElementById('ticket-nombre-preview').textContent = nombre || 'Farmacia San Juan';
   document.getElementById('ticket-rfc-preview').textContent = rfc ? `RFC: ${rfc}` : 'RFC: ---';
+  previewDisenoReceta();
   toast('✅ Branding guardado');
+}
+
+// ══════════════════════════════════════════════════════════
+//  DISEÑO DE LA RECETA — estilo, color de acento y tamaño de papel
+// ══════════════════════════════════════════════════════════
+function guardarDisenoReceta() {
+  cfg.rxEstilo = document.getElementById('cfg-rx-estilo').value;
+  cfg.rxColor  = document.getElementById('cfg-rx-color').value;
+  cfg.rxPapel  = document.getElementById('cfg-rx-papel').value;
+  saveCfg();
+  previewDisenoReceta();
+  toast('Diseño de receta guardado ✓');
+}
+
+function previewDisenoReceta() {
+  const el = document.getElementById('rx-diseno-preview');
+  if (!el) return;
+  const estiloEl = document.getElementById('cfg-rx-estilo');
+  const colorEl  = document.getElementById('cfg-rx-color');
+  const estilo = estiloEl ? estiloEl.value : (cfg.rxEstilo || 'clasico');
+  const color  = colorEl  ? colorEl.value  : (cfg.rxColor  || '#4f46e5');
+  el.innerHTML = buildRecetaHTML(buildRecetaDemo(), false, { estilo, color });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -5116,6 +5180,7 @@ async function guardarNegocioPro() {
   document.getElementById('cfg-tel').value    = cfg.tel;
   document.getElementById('cfg-dir').value    = cfg.dir;
   saveCfg();
+  previewDisenoReceta();
   // guardarConfigEnSheets() ya existía pero nunca se llamaba desde aquí: los
   // datos del negocio se guardaban solo en localStorage y la pestaña "config"
   // del Google Sheet del cliente se quedaba vacía para siempre.
@@ -5138,6 +5203,7 @@ function guardarMedico() {
   cfg.medEmail      = document.getElementById('cfg-med-email').value.trim();
   if (!cfg.medNombre || !cfg.medCedula) { toast('Indica al menos el nombre y la cédula profesional del médico','warn'); }
   saveCfg();
+  previewDisenoReceta();
   toast('Datos del médico guardados ✓');
 }
 
@@ -5240,6 +5306,14 @@ function activarModoPro(lic, sesion) {
   }
   document.getElementById('ticket-nombre-preview').textContent = cfg.nombre || 'Farmacia San Juan';
   document.getElementById('ticket-rfc-preview').textContent = cfg.rfc ? `RFC: ${cfg.rfc}` : 'RFC: ---';
+  // Diseño de la receta
+  const rxEstiloSel = document.getElementById('cfg-rx-estilo');
+  if (rxEstiloSel) rxEstiloSel.value = cfg.rxEstilo || 'clasico';
+  const rxColorInp = document.getElementById('cfg-rx-color');
+  if (rxColorInp) rxColorInp.value = cfg.rxColor || '#4f46e5';
+  const rxPapelSel = document.getElementById('cfg-rx-papel');
+  if (rxPapelSel) rxPapelSel.value = cfg.rxPapel || 'media';
+  previewDisenoReceta();
   // Badge de vencimiento
   const badge = document.getElementById('pro-expiry-badge');
   if (lic.expiry) {
@@ -6357,44 +6431,134 @@ function eliminarReceta(id) {
 
 let recetaActual = null;
 
-function buildRecetaHTML(r, paraImprimir=false) {
+// Receta de ejemplo para la vista previa de diseño en Configuración — usa
+// los datos reales del médico/farmacia ya guardados si existen, para que la
+// vista previa se sienta como la receta real y no como un mockup genérico.
+function buildRecetaDemo() {
+  return {
+    folio: 'R-0000',
+    fecha: new Date().toISOString(),
+    pacienteNombre: 'Nombre del paciente',
+    pacienteEdad: 34,
+    pacienteSexo: 'F',
+    diagnostico: 'Diagnóstico de ejemplo',
+    medicamentos: [
+      { nombre: 'Medicamento de ejemplo', presentacion: 'tabletas', indicaciones: '1 tableta cada 8 horas por 5 días', cantidad: '1 caja' },
+      { nombre: 'Otro medicamento', presentacion: 'jarabe', indicaciones: '5 ml cada 12 horas', cantidad: '1 frasco' },
+    ],
+    notas: 'Reposo y abundantes líquidos. Acudir a revisión en 7 días.',
+    vigenciaDias: 30,
+    medicoNombre: cfg.medNombre || 'Dr. Nombre Apellido',
+    medicoCedula: cfg.medCedula || '00000000',
+    medicoCedulaEsp: cfg.medCedulaEsp || '',
+    medicoEspecialidad: cfg.medEspecialidad || 'Especialidad',
+    farmaciaNombre: cfg.nombre || 'Nombre de la farmacia',
+    farmaciaDireccion: cfg.dir || '',
+    farmaciaTelefono: cfg.tel || '',
+  };
+}
+
+// `opts` permite forzar {estilo, color} — lo usa la vista previa en vivo de
+// Configuración antes de guardar. Sin `opts`, usa el diseño ya guardado en cfg.
+// Nunca usa var(--xxx) aquí: esta misma función arma el HTML que se imprime
+// en una ventana en blanco (sin las variables de tema de la app), así que
+// todos los colores deben ser valores fijos o el color de acento recibido.
+function buildRecetaHTML(r, paraImprimir=false, opts=null) {
+  const estilo = (opts && opts.estilo) || cfg.rxEstilo || 'clasico';
+  const color  = (opts && opts.color)  || cfg.rxColor  || '#4f46e5';
+  const fuente = estilo === 'moderno'
+    ? "'Segoe UI','Helvetica Neue',Arial,sans-serif"
+    : "'Georgia','Times New Roman',serif";
+
   const f = new Date(r.fecha);
   const fStr = f.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
   const vig = new Date(f.getTime() + (r.vigenciaDias||30)*86400000);
   const vigStr = vig.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const logoHTML = cfg.logo
+    ? `<img src="${cfg.logo}" style="max-height:${estilo==='moderno'?'36px':'44px'};max-width:160px;object-fit:contain;margin-bottom:6px">`
+    : '';
 
-  const medsHTML = r.medicamentos.map((m,i)=>`
-    <div style="margin:10px 0;padding-bottom:8px;${i<r.medicamentos.length-1?'border-bottom:1px dashed #ccc':''}">
-      <div style="font-weight:700">${i+1}. ${m.nombre}${m.presentacion?` — ${m.presentacion}`:''}</div>
-      ${m.indicaciones?`<div style="font-size:12px;margin-top:2px">${m.indicaciones}</div>`:''}
-      ${m.cantidad?`<div style="font-size:11px;color:#666;margin-top:2px">Surtir: ${m.cantidad}</div>`:''}
-    </div>`).join('');
+  const medsHTML = estilo === 'moderno'
+    ? r.medicamentos.map((m,i)=>`
+        <div style="margin:10px 0;padding:6px 0 6px 12px;border-left:3px solid ${color}">
+          <div style="font-weight:700">${i+1}. ${m.nombre}${m.presentacion?` — ${m.presentacion}`:''}</div>
+          ${m.indicaciones?`<div style="font-size:12px;margin-top:2px;color:#333">${m.indicaciones}</div>`:''}
+          ${m.cantidad?`<div style="font-size:11px;color:#777;margin-top:2px">Surtir: ${m.cantidad}</div>`:''}
+        </div>`).join('')
+    : r.medicamentos.map((m,i)=>`
+        <div style="margin:10px 0;padding-bottom:8px;${i<r.medicamentos.length-1?'border-bottom:1px dashed #ccc':''}">
+          <div style="font-weight:700">${i+1}. ${m.nombre}${m.presentacion?` — ${m.presentacion}`:''}</div>
+          ${m.indicaciones?`<div style="font-size:12px;margin-top:2px">${m.indicaciones}</div>`:''}
+          ${m.cantidad?`<div style="font-size:11px;color:#666;margin-top:2px">Surtir: ${m.cantidad}</div>`:''}
+        </div>`).join('');
 
-  return `
-    <div style="text-align:center;margin-bottom:10px">
-      <div style="font-weight:800;font-size:${paraImprimir?'16px':'15px'};color:${paraImprimir?'#000':'var(--verde-dk)'}">${(r.farmaciaNombre||'Farmacia').toUpperCase()}</div>
-      ${r.farmaciaDireccion?`<div style="font-size:11px;color:#555">${r.farmaciaDireccion}</div>`:''}
-      ${r.farmaciaTelefono?`<div style="font-size:11px;color:#555">Tel: ${r.farmaciaTelefono}</div>`:''}
-    </div>
-    <div style="border-top:1px solid #999;border-bottom:1px solid #999;padding:8px 0;margin-bottom:10px">
-      <div style="font-weight:700">${r.medicoNombre}</div>
-      ${r.medicoEspecialidad?`<div style="font-size:12px">${r.medicoEspecialidad}</div>`:''}
-      <div style="font-size:12px">Céd. Prof. ${r.medicoCedula}${r.medicoCedulaEsp?` · Céd. Esp. ${r.medicoCedulaEsp}`:''}</div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px">
-      <span>Folio: <strong>${r.folio}</strong></span><span>${fStr}</span>
-    </div>
-    <div style="font-size:13px;margin-bottom:10px">
-      <div><strong>Paciente:</strong> ${r.pacienteNombre}${r.pacienteEdad!==''?` (${r.pacienteEdad} años)`:''}${r.pacienteSexo?`, ${r.pacienteSexo}`:''}</div>
-      <div style="margin-top:4px"><strong>Diagnóstico:</strong> ${r.diagnostico}</div>
-    </div>
-    <div style="font-size:${paraImprimir?'22px':'20px'};font-weight:800;margin:10px 0 4px">℞</div>
-    ${medsHTML}
-    ${r.notas?`<div style="margin-top:10px;font-size:12px;background:${paraImprimir?'transparent':'var(--bg)'};padding:${paraImprimir?'0':'8px'};border-radius:8px"><strong>Indicaciones generales:</strong> ${r.notas}</div>`:''}
-    <div style="margin-top:18px;font-size:11px;color:#666">Receta válida hasta: ${vigStr}</div>
+  const notasHTML = r.notas
+    ? `<div style="margin-top:12px;font-size:12px;background:#f7f7f9;padding:10px;border-radius:8px;${estilo==='moderno'?`border-left:3px solid ${color}`:''}"><strong>Indicaciones generales:</strong> ${r.notas}</div>`
+    : '';
+
+  const firmaHTML = `
     <div style="margin-top:40px;text-align:center">
       <div style="border-top:1px solid #333;width:70%;margin:0 auto"></div>
-      <div style="font-size:11px;margin-top:4px">Firma del médico</div>
+      <div style="font-size:11px;margin-top:4px;color:#555">Firma del médico</div>
+    </div>`;
+
+  if (estilo === 'moderno') {
+    return `
+      <div style="font-family:${fuente};color:#111">
+        <div style="background:${color};color:#fff;text-align:center;padding:14px 10px;border-radius:10px 10px 0 0">
+          ${logoHTML}
+          <div style="font-weight:800;font-size:${paraImprimir?'17px':'15px'};letter-spacing:.5px">${(r.farmaciaNombre||'Farmacia').toUpperCase()}</div>
+          ${r.farmaciaDireccion?`<div style="font-size:11px;opacity:.9">${r.farmaciaDireccion}</div>`:''}
+          ${r.farmaciaTelefono?`<div style="font-size:11px;opacity:.9">Tel: ${r.farmaciaTelefono}</div>`:''}
+        </div>
+        <div style="padding:14px 2px 0">
+          <div style="padding:8px 10px;background:#f7f7f9;border-radius:8px;margin-bottom:10px">
+            <div style="font-weight:700">${r.medicoNombre}</div>
+            ${r.medicoEspecialidad?`<div style="font-size:12px;color:#444">${r.medicoEspecialidad}</div>`:''}
+            <div style="font-size:12px;color:#444">Céd. Prof. ${r.medicoCedula}${r.medicoCedulaEsp?` · Céd. Esp. ${r.medicoCedulaEsp}`:''}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px;color:#444">
+            <span>Folio: <strong style="color:#111">${r.folio}</strong></span><span>${fStr}</span>
+          </div>
+          <div style="font-size:13px;margin-bottom:10px">
+            <div><strong>Paciente:</strong> ${r.pacienteNombre}${r.pacienteEdad!==''?` (${r.pacienteEdad} años)`:''}${r.pacienteSexo?`, ${r.pacienteSexo}`:''}</div>
+            <div style="margin-top:4px"><strong>Diagnóstico:</strong> ${r.diagnostico}</div>
+          </div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;width:${paraImprimir?'32px':'28px'};height:${paraImprimir?'32px':'28px'};border-radius:50%;background:${color};color:#fff;font-weight:800;font-size:${paraImprimir?'17px':'15px'};margin:4px 0">℞</div>
+          ${medsHTML}
+          ${notasHTML}
+          <div style="margin-top:16px;font-size:11px;color:#777">Receta válida hasta: ${vigStr}</div>
+          ${firmaHTML}
+        </div>
+      </div>`;
+  }
+
+  // Clásico
+  return `
+    <div style="font-family:${fuente};color:#111;border:1px solid ${color};border-radius:10px;padding:16px">
+      <div style="text-align:center;margin-bottom:10px;border-bottom:2px solid ${color};padding-bottom:10px">
+        ${logoHTML}
+        <div style="font-weight:800;font-size:${paraImprimir?'17px':'15px'};color:${color};letter-spacing:.5px">${(r.farmaciaNombre||'Farmacia').toUpperCase()}</div>
+        ${r.farmaciaDireccion?`<div style="font-size:11px;color:#555">${r.farmaciaDireccion}</div>`:''}
+        ${r.farmaciaTelefono?`<div style="font-size:11px;color:#555">Tel: ${r.farmaciaTelefono}</div>`:''}
+      </div>
+      <div style="text-align:center;padding:6px 0;margin-bottom:10px">
+        <div style="font-weight:700">${r.medicoNombre}</div>
+        ${r.medicoEspecialidad?`<div style="font-size:12px">${r.medicoEspecialidad}</div>`:''}
+        <div style="font-size:12px">Céd. Prof. ${r.medicoCedula}${r.medicoCedulaEsp?` · Céd. Esp. ${r.medicoCedulaEsp}`:''}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px">
+        <span>Folio: <strong>${r.folio}</strong></span><span>${fStr}</span>
+      </div>
+      <div style="font-size:13px;margin-bottom:10px">
+        <div><strong>Paciente:</strong> ${r.pacienteNombre}${r.pacienteEdad!==''?` (${r.pacienteEdad} años)`:''}${r.pacienteSexo?`, ${r.pacienteSexo}`:''}</div>
+        <div style="margin-top:4px"><strong>Diagnóstico:</strong> ${r.diagnostico}</div>
+      </div>
+      <div style="text-align:center;font-size:${paraImprimir?'24px':'22px'};font-weight:800;color:${color};margin:8px 0 4px">℞</div>
+      ${medsHTML}
+      ${notasHTML}
+      <div style="margin-top:16px;font-size:11px;color:#666">Receta válida hasta: ${vigStr}</div>
+      ${firmaHTML}
     </div>`;
 }
 
@@ -6402,32 +6566,44 @@ function mostrarReceta(r) {
   recetaActual = r;
   document.getElementById('receta-preview-body').innerHTML = buildRecetaHTML(r, false);
   document.getElementById('receta-folio-badge').textContent = r.folio;
+  const sel = document.getElementById('rx-print-papel');
+  if (sel) sel.value = cfg.rxPapel || 'media';
   openModal('modal-receta');
 }
 
-function imprimirRecetaActual() { if (recetaActual) imprimirReceta(recetaActual); }
+function imprimirRecetaActual() {
+  if (!recetaActual) return;
+  const sel = document.getElementById('rx-print-papel');
+  imprimirReceta(recetaActual, sel ? sel.value : (cfg.rxPapel || 'media'));
+}
 
 function imprimirRecetaById(id) {
   const r = db.recetas.find(x=>x.id===id);
-  if (r) imprimirReceta(r);
+  if (r) imprimirReceta(r, cfg.rxPapel || 'media');
 }
 
-function imprimirReceta(r) {
+function imprimirReceta(r, papel) {
+  papel = papel || cfg.rxPapel || 'media';
+  const esMedia = papel !== 'carta';
   const html = buildRecetaHTML(r, true);
+  // Media carta = medio pliego tamaño carta (5.5" × 8.5"); carta completa
+  // usa el tamaño estándar de página. El ancho del contenido se ajusta para
+  // no verse perdido en una hoja completa ni apretado en media carta.
+  const pageSize   = esMedia ? '5.5in 8.5in' : 'letter';
+  const pageMargin = esMedia ? '12mm' : '20mm';
+  const maxWidth   = esMedia ? '420px' : '650px';
   const win = window.open('', '_blank', 'width=650,height=800,scrollbars=yes');
   win.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
 <title>Receta ${r.folio}</title>
 <style>
-  @page { size: letter; margin: 18mm; }
+  @page { size: ${pageSize}; margin: ${pageMargin}; }
   * { box-sizing: border-box; }
   body {
-    font-family: 'Georgia', 'Times New Roman', serif;
     font-size: 14px;
-    color: #000;
     line-height: 1.5;
-    max-width: 480px;
+    max-width: ${maxWidth};
     margin: 0 auto;
     padding: 10px;
   }
