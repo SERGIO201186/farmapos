@@ -686,6 +686,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button id="btn-actualizar-sheets" class="btn btn-ghost btn-sm" style="display:none;margin-right:4px" onclick="actualizarDesdeSheets()" title="Trae las ventas y cambios hechos desde otros dispositivos (caja)">🔄<span class="btn-label"> Actualizar</span></button>
   <div id="sync-dot" title="Estado de sincronización"></div>
   <span id="sync-label" style="font-size:11px;color:var(--txt3)">Sin conectar</span>
+  <button id="btn-citas-bell" onclick="abrirCitasPendientesModal()" style="display:none;position:relative;margin-right:4px" class="btn btn-ghost btn-sm" title="Citas pendientes de agendar">
+    🔔<span class="btn-label"> Citas</span>
+    <span id="citas-badge-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--rojo);color:#fff;font:700 10px var(--sans);min-width:16px;height:16px;line-height:16px;border-radius:8px;text-align:center;padding:0 3px">0</span>
+  </button>
   <a href="https://wa.me/525547894225?text=Hola%2C%20necesito%20soporte%20con%20FarmaPos%20PRO" target="_blank" class="btn btn-ghost btn-sm" style="margin:0 4px" title="Contactar soporte">💬<span class="btn-label"> Soporte</span></a>
   <button id="btn-install" onclick="installPWA()" style="display:none" class="btn btn-ghost btn-sm" title="Instalar aplicación">📲<span class="btn-label"> Instalar</span></button>
   <div id="caja-badge">
@@ -824,6 +828,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <button class="tab-btn active" onclick="showTab('rx-nueva',this)">Nueva receta</button>
     <button class="tab-btn" onclick="showTab('rx-emitidas',this)">Recetas emitidas</button>
     <button class="tab-btn" onclick="showTab('rx-pacientes',this)">Pacientes</button>
+    <button class="tab-btn" data-tab="rx-citas" onclick="showTab('rx-citas',this)">📅 Citas</button>
   </div>
 
   <!-- NUEVA RECETA -->
@@ -910,6 +915,25 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <table>
         <thead><tr><th>Nombre</th><th>Edad</th><th>Sexo</th><th>Teléfono</th><th>Alergias</th><th></th></tr></thead>
         <tbody id="rx-pac-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CITAS (agendadas por el asistente de WhatsApp) -->
+  <div id="rx-citas" style="display:none">
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:12px">
+      Estas citas las agenda solo el asistente de WhatsApp con IA al conversar con el paciente (configúralo en <strong>Configuración → 🤖 Asistente de WhatsApp</strong>). Aquí solo confirmas, marcas como atendida o cancelas — no hace falta escribirle nada al paciente.
+    </p>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div class="search-wrap" style="margin:0;flex:1;min-width:200px">
+        <input id="rx-citas-q" placeholder="🔍 Buscar paciente, teléfono o motivo…" oninput="renderCitas()">
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="actualizarCitas()">🔄 Buscar citas nuevas</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Fecha / hora</th><th>Paciente</th><th>Teléfono</th><th>Motivo</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="rx-citas-tbody"></tbody>
       </table>
     </div>
   </div>
@@ -1195,6 +1219,68 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     </div>
 
     <div class="card">
+      <div class="card-hd">🤖 Asistente de WhatsApp con IA (citas automáticas)</div>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px">
+        Conecta un número de WhatsApp para que un asistente con IA conteste solo, reúna nombre, fecha, hora y motivo de la cita, y la guarde en <strong>Recetas → 📅 Citas</strong>. El doctor no conversa con el paciente, solo revisa ahí las citas ya agendadas.
+      </p>
+      <div class="sheets-status">
+        <span id="wa-estado-dot">⚪</span>
+        <span id="wa-estado-txt">Sin configurar</span>
+      </div>
+      <div class="field">
+        <label>Token de acceso de WhatsApp Business (Meta Cloud API)</label>
+        <input id="wa-token" type="password" placeholder="Déjalo en blanco para no cambiarlo">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0">
+          <label>Phone Number ID</label>
+          <input id="wa-phone-id" placeholder="123456789012345">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Verify Token (lo inventas tú)</label>
+          <input id="wa-verify-token" placeholder="Ej: farmapos-2026-secreto">
+        </div>
+      </div>
+      <div class="field">
+        <label>API Key de Anthropic (la IA que conversa con el paciente)</label>
+        <input id="wa-anthropic-key" type="password" placeholder="Déjala en blanco para no cambiarla">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0">
+          <label>Nombre de la clínica (lo usa la IA al presentarse)</label>
+          <input id="wa-nombre-clinica" placeholder="Ej: Consultorio Dr. García">
+        </div>
+        <div class="field" style="margin:0">
+          <label>WhatsApp del doctor para avisos (opcional)</label>
+          <input id="wa-doctor-tel" placeholder="521XXXXXXXXXX">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="guardarConfigWhatsApp()">💾 Guardar configuración del asistente</button>
+        <button class="btn btn-ghost" onclick="pedirPermisoNotificaciones()">🔔 Activar notificaciones de este navegador</button>
+      </div>
+
+      <details style="margin-top:14px">
+        <summary style="font:600 12px var(--sans);cursor:pointer;color:var(--indigo)">📋 Instrucciones para el técnico instalador</summary>
+        <div style="font-size:12px;color:var(--txt2);margin-top:10px;line-height:1.7;background:var(--bg);padding:12px;border-radius:8px">
+          Pide al <strong>cliente final</strong> que adquiera, con su propia cuenta (no la tuya), lo siguiente:<br><br>
+          <strong>1. WhatsApp Business API (Meta Cloud API):</strong><br>
+          &nbsp;&nbsp;a) Entra a <a href="https://developers.facebook.com" target="_blank" style="color:var(--indigo)">developers.facebook.com</a> con la cuenta de Facebook/Meta del negocio y crea una app tipo "Business".<br>
+          &nbsp;&nbsp;b) Agrega el producto <strong>WhatsApp</strong> a esa app.<br>
+          &nbsp;&nbsp;c) En WhatsApp → API Setup, copia el <strong>token de acceso</strong> (usa uno permanente/de sistema — el temporal expira en 24 h) y el <strong>Phone Number ID</strong>.<br>
+          &nbsp;&nbsp;d) En WhatsApp → Configuration, registra como Webhook la misma <strong>URL del Apps Script</strong> de arriba (la de "Conexión con Google Sheets"), usando exactamente el mismo <strong>Verify Token</strong> que pongas aquí abajo, y suscríbete al campo <strong>messages</strong>.<br><br>
+          <strong>2. API de Anthropic (la IA que conversa con el paciente):</strong><br>
+          &nbsp;&nbsp;a) El cliente crea su cuenta en <a href="https://console.anthropic.com" target="_blank" style="color:var(--indigo)">console.anthropic.com</a> y carga saldo.<br>
+          &nbsp;&nbsp;b) Genera una API Key ahí y pégala abajo. El costo de los mensajes lo paga el cliente directo a Anthropic — no pasa por Omnia ni por ti.<br><br>
+          <strong>3.</strong> Llena los campos de arriba con esos datos y da clic en "Guardar configuración del asistente". Necesitas tener ya guardada la URL del Apps Script (sección de arriba) antes de poder guardar esto.<br><br>
+          Los campos de token/API Key nunca se vuelven a mostrar aquí una vez guardados (se guardan cifrados del lado de Google, en Script Properties, no en la hoja de cálculo) — si necesitas cambiarlos, simplemente vuelve a escribirlos; dejarlos en blanco conserva el valor ya guardado.<br><br>
+          <strong>4.</strong> Cada cita que agende el asistente avisa sola con una campana 🔔 en la barra de arriba — tanto en el dispositivo del doctor como en el de mostrador/caja. Para que además salga como notificación del propio navegador (aunque la pestaña no esté al frente), en <strong>cada dispositivo</strong> da clic en "Activar notificaciones de este navegador" y acepta el permiso que pida el navegador.<br><br>
+          <strong>⚠️ Importante:</strong> quien tenga la URL del Apps Script puede reconfigurar este asistente, así que no la compartas ni la publiques — solo el cliente y tú deben tenerla.
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
       <div class="card-hd">⚠️ Zona de peligro</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="exportDB()">⬇ Exportar datos</button>
@@ -1271,7 +1357,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn btn-primary btn-sm btn-full" onclick="detectarImpresora()">🔍 Detectar impresora</button>
+          <button class="btn btn-primary btn-sm btn-full" onclick="detectarImpresora(event)">🔍 Detectar impresora</button>
           <button class="btn btn-ghost btn-sm btn-full" onclick="impresionPrueba()">🧪 Probar impresión</button>
         </div>
 
@@ -1458,6 +1544,21 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="ticket-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-receta')">✕ Cerrar</button>
       <button class="btn btn-indigo" style="flex:2" onclick="imprimirRecetaActual()">🖨 Imprimir receta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Citas pendientes: aviso rápido para el doctor Y para el mostrador
+     (el dispositivo de caja no tiene acceso a Recetas, así que este modal
+     es la única forma en que el personal de farmacia ve que hay una cita
+     agendada por WhatsApp). -->
+<div class="modal-bg" id="modal-citas-pendientes">
+  <div class="modal">
+    <h3>🔔 Citas pendientes</h3>
+    <div id="citas-pendientes-lista" style="max-height:50vh;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-citas-pendientes')">Cerrar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-citas-pendientes');abrirCitasEnRecetas()">📅 Gestionar en Recetas</button>
     </div>
   </div>
 </div>
@@ -3802,14 +3903,37 @@ const APPS_SCRIPT_CODE = `
 const SS_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 
 // ── LICENCIA PRO: se valida en el Panel Maestro de Omnia (Control Central),
-// NO en este script. Este backend solo guarda los datos del negocio
-// (productos, ventas, etc.); ya no necesitas una hoja "licencias" aquí.
+// NO en este script. Cada cliente ya no necesita su propia hoja "licencias":
+// la app llama directo a la URL /exec del Panel Maestro (action=verify).
+// Este backend solo guarda los datos del negocio (productos, ventas, etc.).
 
 function doGet(e) {
   const action = e.parameter.action || '';
 
+  // Verificación del webhook de WhatsApp (Meta Cloud API la llama por GET
+  // una vez, al registrar la URL /exec, para confirmar que somos dueños de ella).
+  if (e.parameter['hub.mode'] === 'subscribe') {
+    const verifyToken = waProp('verifyToken');
+    if (verifyToken && e.parameter['hub.verify_token'] === verifyToken) {
+      return ContentService.createTextOutput(e.parameter['hub.challenge']);
+    }
+    return ContentService.createTextOutput('Verificación fallida');
+  }
+
   if (action === 'ping') {
     return json({ok:true, msg:'pong', ts:new Date().toISOString()});
+  }
+
+  // Estado del asistente de WhatsApp, para que la app muestre si ya está
+  // configurado sin exponer los tokens/API keys guardados.
+  if (action === 'estadoWhatsApp') {
+    return json({
+      ok: true,
+      configurado: !!(waProp('whatsappToken') && waProp('phoneNumberId') && waProp('verifyToken')),
+      iaConfigurada: !!waProp('anthropicApiKey'),
+      nombreClinica: waProp('nombreClinica'),
+      doctorTelefono: waProp('doctorTelefono')
+    });
   }
 
   const sheet = getSheet(e.parameter.sheet || 'productos');
@@ -3825,7 +3949,22 @@ function doGet(e) {
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
+
+    // Mensaje entrante de WhatsApp (Meta Cloud API) — se distingue de las
+    // peticiones normales de la app porque trae este "object" fijo.
+    if (body.object === 'whatsapp_business_account') {
+      manejarMensajeWhatsApp(body);
+      return json({ok:true});
+    }
+
     const {action, sheet: sheetName, data, id} = body;
+
+    // Configuración del asistente de WhatsApp desde la propia app (pestaña
+    // Configuración), sin tener que entrar al editor de Apps Script.
+    if (action === 'configurarWhatsApp') {
+      configurarAsistenteWhatsApp(data || {});
+      return json({ok:true});
+    }
 
     const sheet = getSheet(sheetName || 'productos');
     const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
@@ -3881,9 +4020,11 @@ function getSheet(name) {
       productos:   ['id','barcode','nombre','cat','proveedor','precio','costo','stock','stockmin','vence','unidad','desc'],
       ventas:      ['id','folio','fecha','items','subtotal','descuento','total','recibido','cambio','metodo'],
       movimientos: ['id','fecha','tipo','monto','concepto'],
+      cortes:      ['apertura','cierre','fondo','ingresos','egresos','saldoFinal'],
       config:      ['key','value'],
       pacientes:   ['id','nombre','fechaNacimiento','sexo','telefono','direccion','alergias','cronicas','notas','creado'],
-      recetas:     ['id','folio','fecha','pacienteId','pacienteNombre','pacienteEdad','pacienteSexo','diagnostico','notas','medicamentos','vigenciaDias','medicoNombre','medicoCedula','medicoCedulaEsp','medicoEspecialidad']
+      recetas:     ['id','folio','fecha','pacienteId','pacienteNombre','pacienteEdad','pacienteSexo','diagnostico','notas','medicamentos','vigenciaDias','medicoNombre','medicoCedula','medicoCedulaEsp','medicoEspecialidad'],
+      citas:       ['id','fecha','hora','paciente','telefono','motivo','estado','creado','origen']
     };
     if (headers[name]) s.getRange(1,1,1,headers[name].length).setValues([headers[name]]);
   }
@@ -3894,12 +4035,186 @@ function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+// ── ASISTENTE DE WHATSAPP CON IA PARA AGENDAR CITAS ──────────────────────
+// El bot recibe mensajes de WhatsApp, conversa con el paciente para reunir
+// nombre / fecha / hora / motivo, y al completarlos guarda la cita en la
+// hoja "citas". El doctor solo consulta esa hoja desde el panel de citas
+// de la app — no participa en la conversación.
+//
+// INSTALACIÓN EN UN CLIENTE NUEVO: normalmente basta con llenar el
+// formulario "🤖 Asistente de WhatsApp con IA" en Configuración dentro de
+// la propia app (usa la acción configurarWhatsApp de este mismo backend).
+// Si prefieres hacerlo desde el editor de Apps Script, corre esto una vez:
+//
+//   configurarAsistenteWhatsApp({
+//     whatsappToken:   'EAAxxxxx...',           // token permanente, Meta for Developers > WhatsApp > API Setup
+//     phoneNumberId:   '123456789012345',       // Phone Number ID de ese mismo panel
+//     verifyToken:     'un-secreto-a-elegir',   // cualquier cadena; debe repetirse al registrar el webhook
+//     anthropicApiKey: 'sk-ant-xxxxx...',       // console.anthropic.com
+//     doctorTelefono:  '521XXXXXXXXXX',         // opcional, en formato E.164 sin "+": para avisarle cada cita nueva
+//     nombreClinica:   'Nombre de la clínica'   // se usa en el prompt del asistente
+//   });
+//
+// Después, en Meta for Developers > WhatsApp > Configuration, registra la
+// URL /exec de este Web App como Webhook y usa el mismo verifyToken.
+
+function configurarAsistenteWhatsApp(cfg) {
+  const props = PropertiesService.getScriptProperties();
+  Object.keys(cfg || {}).forEach(k => {
+    if (cfg[k] === '' || cfg[k] == null) return; // no pisa un valor ya guardado con uno vacío
+    props.setProperty('WA_' + k, String(cfg[k]));
+  });
+  return 'Configuración del asistente de WhatsApp guardada.';
+}
+
+function waProp(key, def) {
+  return PropertiesService.getScriptProperties().getProperty('WA_' + key) || def || '';
+}
+
+function manejarMensajeWhatsApp(body) {
+  try {
+    const entry = (body.entry || [])[0];
+    const change = entry && (entry.changes || [])[0];
+    const value = change && change.value;
+    const msg = value && (value.messages || [])[0];
+    if (!msg || msg.type !== 'text') return; // ignora confirmaciones de entrega, multimedia, etc.
+
+    const telefono = msg.from;
+    const texto = msg.text.body;
+
+    const respuesta = procesarMensajeIA(telefono, texto);
+    enviarWhatsApp(telefono, respuesta.reply);
+
+    if (respuesta.citaLista && respuesta.cita) {
+      guardarCita(respuesta.cita, telefono);
+      const doctorTel = waProp('doctorTelefono');
+      if (doctorTel) {
+        enviarWhatsApp(doctorTel,
+          '📅 Nueva cita agendada\\nPaciente: ' + respuesta.cita.paciente +
+          '\\nFecha: ' + respuesta.cita.fecha + ' ' + respuesta.cita.hora +
+          '\\nMotivo: ' + respuesta.cita.motivo);
+      }
+    }
+  } catch (err) {
+    // Nunca dejar que un error rompa el webhook: si no respondemos 200,
+    // Meta reintenta la misma entrega varias veces.
+    console.error('Error en manejarMensajeWhatsApp: ' + err);
+  }
+}
+
+function procesarMensajeIA(telefono, texto) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'wa_chat_' + telefono;
+  let historial = [];
+  try { historial = JSON.parse(cache.get(cacheKey) || '[]'); } catch (e) { historial = []; }
+
+  historial.push({ role: 'user', content: texto });
+
+  const zona = Session.getScriptTimeZone() || 'America/Mexico_City';
+  const hoy = Utilities.formatDate(new Date(), zona, "yyyy-MM-dd (EEEE)");
+  const nombreClinica = waProp('nombreClinica', 'la clínica');
+
+  const systemPrompt =
+    'Eres el asistente de WhatsApp de ' + nombreClinica + '. Tu único trabajo es ' +
+    'ayudar a agendar citas médicas por chat, de forma breve y amable.\\n\\n' +
+    'Hoy es ' + hoy + '.\\n\\n' +
+    'Necesitas reunir estos datos antes de agendar:\\n' +
+    '- Nombre completo del paciente\\n' +
+    '- Fecha deseada (conviértela siempre a formato AAAA-MM-DD)\\n' +
+    '- Hora deseada (formato HH:mm, 24 horas)\\n' +
+    '- Motivo breve de la consulta\\n\\n' +
+    'Si falta algún dato, pregúntalo de forma natural, uno o dos a la vez, sin listarlos ' +
+    'como un formulario. Si el paciente da una fecha/hora ambigua o ya pasada, pide que la ' +
+    'aclare o corrija. No inventes datos ni marques la cita como lista sin tener los 4.\\n\\n' +
+    'Responde SIEMPRE con un único objeto JSON válido, sin texto fuera del JSON, con esta forma exacta:\\n' +
+    '{"reply": "<mensaje para el paciente>", "citaLista": <true o false>, ' +
+    '"cita": {"paciente": "...", "fecha": "AAAA-MM-DD", "hora": "HH:mm", "motivo": "..."}}\\n\\n' +
+    '"cita" solo va completo cuando citaLista es true. Mientras falten datos, citaLista debe ser false.';
+
+  const aiRespuesta = llamarClaude(systemPrompt, historial);
+
+  historial.push({ role: 'assistant', content: JSON.stringify(aiRespuesta) });
+  if (historial.length > 20) historial = historial.slice(-20); // recorta el contexto
+  cache.put(cacheKey, JSON.stringify(historial), 1800); // 30 min de contexto por número
+
+  return aiRespuesta;
+}
+
+function llamarClaude(systemPrompt, historial) {
+  const apiKey = waProp('anthropicApiKey');
+  if (!apiKey) {
+    // Sin IA configurada, no se rompe el flujo: se avisa al paciente que
+    // alguien del equipo lo contactará, en vez de fallar en silencio.
+    return { reply: 'Gracias por tu mensaje. En breve una persona del equipo te contactará para agendar tu cita.', citaLista: false };
+  }
+
+  const payload = {
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    system: systemPrompt,
+    messages: historial.map(m => ({ role: m.role, content: m.content }))
+  };
+
+  const resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+
+  let data;
+  try { data = JSON.parse(resp.getContentText()); } catch (e) { data = {}; }
+  const texto = (data.content && data.content[0] && data.content[0].text) || '';
+
+  try {
+    return JSON.parse(texto);
+  } catch (e) {
+    // La IA no devolvió JSON puro (raro, pero posible): se manda su texto tal cual.
+    return { reply: texto || 'Disculpa, ¿me repites tu mensaje?', citaLista: false };
+  }
+}
+
+function enviarWhatsApp(telefono, texto) {
+  const token = waProp('whatsappToken');
+  const phoneId = waProp('phoneNumberId');
+  if (!token || !phoneId) return;
+
+  UrlFetchApp.fetch('https://graph.facebook.com/v20.0/' + phoneId + '/messages', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: telefono,
+      type: 'text',
+      text: { body: texto }
+    }),
+    muteHttpExceptions: true
+  });
+}
+
+function guardarCita(cita, telefono) {
+  const sheet = getSheet('citas');
+  sheet.appendRow([
+    Utilities.getUuid(),
+    cita.fecha,
+    cita.hora,
+    cita.paciente,
+    telefono,
+    cita.motivo,
+    'pendiente',
+    new Date().toISOString(),
+    'whatsapp'
+  ]);
+}
 `;
 
 // ══════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════
-let db = { productos:[], ventas:[], movimientos:[], caja:{abierta:false,fondo:0,fechaApertura:null}, cortes:[], pacientes:[], recetas:[] };
+let db = { productos:[], ventas:[], movimientos:[], caja:{abierta:false,fondo:0,fechaApertura:null}, cortes:[], pacientes:[], recetas:[], citas:[] };
 let cfg = { url:'', nombre:'FarmaPos Demo', rfc:'', tel:'', dir:'', ticketAncho:'80',
   medNombre:'', medCedula:'', medCedulaEsp:'', medEspecialidad:'', medTelefono:'', medEmail:'',
   rol:'completo' }; // rol: 'completo' (doctor/dueño, todas las secciones) o 'caja' (dispositivo de mostrador, solo Venta+Caja)
@@ -4078,6 +4393,7 @@ function load() {
     if (c) cfg = { ...cfg, ...JSON.parse(c) };
     db.pacientes = db.pacientes || [];
     db.recetas   = db.recetas   || [];
+    db.citas     = db.citas     || [];
     cfg.rol = cfg.rol || 'completo';
   } catch(e) {
     console.error('Datos locales corruptos, se reinicia el almacenamiento:', e);
@@ -4224,9 +4540,9 @@ async function actualizarDesdeSheets() {
   if (!cfg.url) { toast('Configura la URL de Google Sheets primero','warn'); return; }
   setSyncState('syncing', 'Actualizando…');
   try {
-    const [productos, ventas, movimientos, cortes, pacientes, recetas] = await Promise.all([
+    const [productos, ventas, movimientos, cortes, pacientes, recetas, citas] = await Promise.all([
       sheetsGet('productos'), sheetsGet('ventas'), sheetsGet('movimientos'),
-      sheetsGet('cortes'), sheetsGet('pacientes'), sheetsGet('recetas'),
+      sheetsGet('cortes'), sheetsGet('pacientes'), sheetsGet('recetas'), sheetsGet('citas'),
     ]);
     // sheetsGet regresa null si la hoja no existe o si falló la conexión;
     // en ese caso se conserva lo que ya había en vez de vaciarlo.
@@ -4236,10 +4552,11 @@ async function actualizarDesdeSheets() {
     if (cortes)      db.cortes      = cortes;
     if (pacientes)   db.pacientes   = pacientes;
     if (recetas)     db.recetas     = recetas;
+    if (citas)       db.citas       = citas;
     save();
 
     renderPosGrid(); renderInv(); renderCaja(); renderReportes();
-    renderRxPacienteSelect(); renderRecetasEmitidas(); renderPacientes();
+    renderRxPacienteSelect(); renderRecetasEmitidas(); renderPacientes(); renderCitas();
     updateBadge();
 
     setSyncState('ok', 'Actualizado');
@@ -4247,6 +4564,24 @@ async function actualizarDesdeSheets() {
   } catch(e) {
     setSyncState('error');
     toast('No se pudo actualizar: ' + e.message, 'err');
+  }
+}
+
+// Trae solo la hoja "citas" (las agenda el asistente de WhatsApp
+// directo en el Sheet, sin pasar por este dispositivo) — se llama sola al
+// abrir la pestaña Citas y también hay un botón manual, sin necesidad de
+// jalar todo lo demás (productos, ventas, etc.) como actualizarDesdeSheets().
+async function actualizarCitas() {
+  if (!cfg.url) { renderCitas(); return; }
+  setSyncState('syncing', 'Buscando citas nuevas…');
+  try {
+    const citas = await sheetsGet('citas');
+    if (citas) { db.citas = citas; save(); }
+    renderCitas();
+    setSyncState('ok');
+  } catch(e) {
+    setSyncState('error');
+    toast('No se pudieron actualizar las citas: ' + e.message, 'err');
   }
 }
 
@@ -4312,6 +4647,13 @@ async function initApp() {
   aplicarRestriccionesRol();
   document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
   setTimeout(()=>document.getElementById('pos-barcode').focus(), 300);
+
+  // Aviso de citas nuevas del asistente de WhatsApp — ver comentario junto a
+  // chequearCitasNuevas(). Corre en el doctor Y en el mostrador/caja.
+  actualizarBadgeCitas();
+  chequearCitasNuevas();
+  setInterval(chequearCitasNuevas, CITAS_POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) chequearCitasNuevas(); });
 }
 initApp();
 
@@ -4332,9 +4674,10 @@ function showView(v, el) {
   }
   if (v==='pos') { renderPosGrid(); setTimeout(()=>document.getElementById('pos-barcode').focus(),100); }
   if (v==='inventario') renderInv();
-  if (v==='recetas') { renderRxPacienteSelect(); renderRecetasEmitidas(); renderPacientes(); }
+  if (v==='recetas') { renderRxPacienteSelect(); renderRecetasEmitidas(); renderPacientes(); renderCitas(); }
   if (v==='caja') renderCaja();
   if (v==='reportes') renderReportes();
+  if (v==='config') cargarEstadoWhatsApp();
 }
 
 function showTab(id, el) {
@@ -4350,6 +4693,7 @@ function showTab(id, el) {
   if (id==='rx-emitidas') renderRecetasEmitidas();
   if (id==='rx-pacientes') renderPacientes();
   if (id==='rx-nueva') renderRxPacienteSelect();
+  if (id==='rx-citas') actualizarCitas();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -4651,7 +4995,7 @@ function testEscaner() {
   input.onkeyup = handler;
 }
 
-async function detectarImpresora() {
+async function detectarImpresora(event) {
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = 'Detectando...';
@@ -4933,6 +5277,150 @@ function cerrarSesionPro() {
 
 function copyScript() {
   navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(()=>toast('Código copiado al portapapeles ✓'));
+}
+
+// ══════════════════════════════════════════════════════════
+//  ASISTENTE DE WHATSAPP — configuración desde la app (Configuración)
+// ══════════════════════════════════════════════════════════
+async function guardarConfigWhatsApp() {
+  if (!cfg.url) { toast('Primero configura y guarda la URL del Apps Script arriba','warn'); return; }
+  const data = {
+    whatsappToken:   document.getElementById('wa-token').value.trim(),
+    phoneNumberId:   document.getElementById('wa-phone-id').value.trim(),
+    verifyToken:     document.getElementById('wa-verify-token').value.trim(),
+    anthropicApiKey: document.getElementById('wa-anthropic-key').value.trim(),
+    nombreClinica:   document.getElementById('wa-nombre-clinica').value.trim(),
+    doctorTelefono:  document.getElementById('wa-doctor-tel').value.trim(),
+  };
+  setSyncState('syncing', 'Guardando…');
+  const ok = await sheetsPost({ action:'configurarWhatsApp', data });
+  setSyncState(ok ? 'ok' : 'error');
+  if (ok) {
+    toast('Configuración del asistente guardada ✓');
+    // Los secretos nunca se vuelven a mostrar; se limpian los campos para
+    // que no parezca que quedaron vacíos en el servidor.
+    document.getElementById('wa-token').value = '';
+    document.getElementById('wa-anthropic-key').value = '';
+    document.getElementById('wa-verify-token').value = '';
+    cargarEstadoWhatsApp();
+  } else {
+    toast('No se pudo guardar — revisa la URL del Apps Script','err');
+  }
+}
+
+async function cargarEstadoWhatsApp() {
+  const dot = document.getElementById('wa-estado-dot');
+  const txt = document.getElementById('wa-estado-txt');
+  if (!dot || !txt) return;
+  if (!cfg.url) { dot.textContent = '⚪'; txt.textContent = 'Sin configurar'; return; }
+  try {
+    const r = await fetch(`${cfg.url}?action=estadoWhatsApp&_=${Date.now()}`);
+    const j = await r.json();
+    if (!j.ok) throw new Error();
+    const listo = j.configurado && j.iaConfigurada;
+    const algo  = j.configurado || j.iaConfigurada;
+    dot.textContent = listo ? '🟢' : (algo ? '🟡' : '⚪');
+    txt.textContent = listo
+      ? `Activo${j.nombreClinica ? ' — '+j.nombreClinica : ''}`
+      : (algo ? 'Configuración incompleta (falta WhatsApp o la API de IA)' : 'Sin configurar');
+    const elClinica = document.getElementById('wa-nombre-clinica');
+    const elDoctor  = document.getElementById('wa-doctor-tel');
+    if (elClinica && j.nombreClinica) elClinica.placeholder = 'Actual: ' + j.nombreClinica;
+    if (elDoctor && j.doctorTelefono) elDoctor.placeholder  = 'Actual: ' + j.doctorTelefono;
+  } catch(e) {
+    // Silencioso: no bloquea la pantalla de Configuración por esto.
+  }
+}
+
+function pedirPermisoNotificaciones() {
+  if (!window.Notification) { toast('Tu navegador no soporta notificaciones','warn'); return; }
+  Notification.requestPermission().then(p => {
+    toast(p==='granted' ? 'Notificaciones del navegador activadas ✓' : 'Notificaciones no activadas', p==='granted'?'ok':'warn');
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  AVISO DE CITAS NUEVAS (asistente de WhatsApp) — a diferencia del resto
+//  de "Recetas", esto SÍ debe avisarle también al mostrador/caja (no solo
+//  al doctor), para que alguien se entere de la cita aunque el doctor no
+//  esté viendo la pantalla en ese momento. Por eso la campana vive en el
+//  topbar (fuera de aplicarRestriccionesRol()) y no dentro de la vista
+//  Recetas, que sí está oculta para el dispositivo de caja.
+//
+//  Sondea la hoja "citas" cada CITAS_POLL_MS mientras la pestaña esté
+//  visible y haya una URL de Sheets configurada. A propósito no es más
+//  agresivo que eso — mismo motivo por el que "Actualizar" es manual en el
+//  resto de la app (ver actualizarDesdeSheets): no gastar la cuota diaria
+//  de ejecuciones de Apps Script sondeando seguido desde varios
+//  dispositivos a la vez.
+// ══════════════════════════════════════════════════════════
+const CITAS_POLL_MS = 180000; // 3 minutos
+let citasNotificadas = new Set();
+try { citasNotificadas = new Set(JSON.parse(localStorage.getItem('fp2_citas_notificadas')||'[]')); } catch(e) {}
+
+function marcarCitaNotificada(id) {
+  citasNotificadas.add(id);
+  // Tope de 300 para que la lista guardada no crezca para siempre.
+  localStorage.setItem('fp2_citas_notificadas', JSON.stringify([...citasNotificadas].slice(-300)));
+}
+
+async function chequearCitasNuevas() {
+  if (!cfg.url || document.hidden) return;
+  try {
+    const citas = await sheetsGet('citas');
+    if (!citas) return;
+    db.citas = citas;
+    save();
+
+    citas.filter(c => c.estado === 'pendiente' && !citasNotificadas.has(c.id))
+      .forEach(c => { marcarCitaNotificada(c.id); notificarCitaNueva(c); });
+
+    actualizarBadgeCitas();
+    if (document.getElementById('view-recetas')?.classList.contains('active')) renderCitas();
+  } catch(e) { /* sondeo silencioso: un fallo aquí no debe interrumpir al usuario */ }
+}
+
+function notificarCitaNueva(c) {
+  toast(`📅 Nueva cita: ${c.paciente||'Paciente'} — ${c.fecha||''} ${c.hora||''}`, 'ok');
+  if (window.Notification && Notification.permission === 'granted') {
+    try {
+      new Notification('📅 Nueva cita agendada', {
+        body: `${c.paciente||''} — ${c.fecha||''} ${c.hora||''}${c.motivo ? '\n'+c.motivo : ''}`,
+        icon: 'icon-192.png'
+      });
+    } catch(e) {}
+  }
+}
+
+function actualizarBadgeCitas() {
+  const bell  = document.getElementById('btn-citas-bell');
+  const badge = document.getElementById('citas-badge-count');
+  if (!bell || !badge) return;
+  bell.style.display = cfg.url ? 'inline-flex' : 'none';
+  const n = (db.citas||[]).filter(c=>c.estado==='pendiente').length;
+  badge.style.display = n>0 ? 'block' : 'none';
+  badge.textContent = n>99 ? '99+' : n;
+}
+
+function abrirCitasPendientesModal() {
+  const lista = document.getElementById('citas-pendientes-lista');
+  const pendientes = (db.citas||[]).filter(c=>c.estado==='pendiente')
+    .sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+  lista.innerHTML = pendientes.length
+    ? pendientes.map(c=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font:600 13px var(--sans)">${c.paciente||'—'}</div>
+          <div style="font-size:12px;color:var(--txt2)">${c.fecha||''} ${c.hora||''} · ${c.telefono||'—'}</div>
+          ${c.motivo ? `<div style="font-size:12px;color:var(--txt2);margin-top:2px">${c.motivo}</div>` : ''}
+        </div>`).join('')
+    : `<p style="text-align:center;color:var(--txt2);padding:20px 0">Sin citas pendientes</p>`;
+  openModal('modal-citas-pendientes');
+}
+
+function abrirCitasEnRecetas() {
+  showView('recetas', document.querySelector('.dnav-btn[data-view="recetas"]'));
+  const tabBtn = document.querySelector('.tab-btn[data-tab="rx-citas"]');
+  if (tabBtn) showTab('rx-citas', tabBtn);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -5610,6 +6098,65 @@ function renderPacientes() {
 }
 
 // ══════════════════════════════════════════════════════════
+//  CITAS (agendadas por el asistente de WhatsApp con IA)
+// ══════════════════════════════════════════════════════════
+function cambiarEstadoCita(id, nuevoEstado) {
+  const c = (db.citas||[]).find(x=>x.id===id);
+  if (!c) return;
+  c.estado = nuevoEstado;
+  saveAndSyncFast('citas', c);
+  renderCitas();
+  toast('Cita actualizada ✓');
+}
+
+function eliminarCita(id) {
+  if (!confirm('¿Eliminar esta cita?')) return;
+  db.citas = (db.citas||[]).filter(c=>c.id!==id);
+  saveAndDeleteFast('citas', id);
+  renderCitas();
+  toast('Cita eliminada','warn');
+}
+
+function renderCitas() {
+  const qEl = document.getElementById('rx-citas-q');
+  const tbody = document.getElementById('rx-citas-tbody');
+  if (!tbody) return;
+  const q = qEl ? qEl.value.toLowerCase() : '';
+  const list = (db.citas||[]).filter(c=>!q
+    || (c.paciente||'').toLowerCase().includes(q)
+    || (c.telefono||'').includes(q)
+    || (c.motivo||'').toLowerCase().includes(q));
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--txt2);padding:30px">Sin citas agendadas — aquí aparecerán las que agende el asistente de WhatsApp</td></tr>`;
+    return;
+  }
+  const badgeClase = {pendiente:'badge-amber', confirmada:'badge-verde', atendida:'badge-indigo', cancelada:'badge-rojo'};
+  const acciones = c => {
+    if (c.estado === 'confirmada') {
+      return `<button class="btn btn-ghost btn-sm" onclick="cambiarEstadoCita('${c.id}','atendida')">🩺 Atendida</button>
+              <button class="btn btn-ghost btn-sm" onclick="cambiarEstadoCita('${c.id}','cancelada')">✖ Cancelar</button>`;
+    }
+    if (c.estado === 'atendida' || c.estado === 'cancelada') {
+      return `<button class="btn btn-ghost btn-sm" onclick="cambiarEstadoCita('${c.id}','pendiente')">↺ Reabrir</button>`;
+    }
+    // 'pendiente' (o estado desconocido, por si se editó algo a mano en Sheets)
+    return `<button class="btn btn-ghost btn-sm" onclick="cambiarEstadoCita('${c.id}','confirmada')">✔ Confirmar</button>
+            <button class="btn btn-ghost btn-sm" onclick="cambiarEstadoCita('${c.id}','cancelada')">✖ Cancelar</button>`;
+  };
+  tbody.innerHTML = list.slice()
+    .sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora))
+    .map(c=>`
+    <tr>
+      <td>${c.fecha||'—'} ${c.hora||''}</td>
+      <td><strong>${c.paciente||'—'}</strong></td>
+      <td>${c.telefono||'—'}</td>
+      <td>${c.motivo||'—'}</td>
+      <td><span class="badge ${badgeClase[c.estado]||'badge-amber'}">${c.estado||'pendiente'}</span></td>
+      <td style="white-space:nowrap">${acciones(c)} <button class="btn btn-danger btn-sm" onclick="eliminarCita('${c.id}')">🗑</button></td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
 //  RECETAS
 // ══════════════════════════════════════════════════════════
 function renderRxPacienteSelect() {
@@ -6189,7 +6736,7 @@ function loadDemoData() {
 // ══════════════════════════════════════════════════════════
 function resetDemo() {
   if (!confirm('¿Reiniciar todos los datos de demostración?')) return;
-  db = {productos:[],ventas:[],movimientos:[],caja:{abierta:false,fondo:0,fechaApertura:null},cortes:[],pacientes:[],recetas:[]};
+  db = {productos:[],ventas:[],movimientos:[],caja:{abierta:false,fondo:0,fechaApertura:null},cortes:[],pacientes:[],recetas:[],citas:[]};
   loadDemoData();
   ticket=[];
   renderTicket();
@@ -6200,6 +6747,7 @@ function resetDemo() {
   renderRxPacienteSelect();
   renderRecetasEmitidas();
   renderPacientes();
+  renderCitas();
   updateBadge();
   document.getElementById('caja-closed').style.display='none';
   document.getElementById('caja-open').style.display='block';
@@ -6219,13 +6767,13 @@ function exportDB() {
 
 async function borrarTodo() {
   if (!confirm('⚠️ ¿Borrar TODOS los datos locales y en Google Sheets? Esta acción no se puede deshacer.')) return;
-  if (!confirm('Última confirmación: se eliminarán productos, ventas, movimientos, cortes, pacientes y recetas.')) return;
+  if (!confirm('Última confirmación: se eliminarán productos, ventas, movimientos, cortes, pacientes, recetas y citas.')) return;
   // 1. Primero limpiar en Sheets con arrays vacíos (evita que el sync los restaure)
   if (cfg.url) {
     setSyncState('syncing', 'Borrando en Sheets…');
     await sheetsPost({
       action: 'sync_all',
-      data: { productos:[], ventas:[], movimientos:[], cortes:[], pacientes:[], recetas:[] }
+      data: { productos:[], ventas:[], movimientos:[], cortes:[], pacientes:[], recetas:[], citas:[] }
     });
   }
   // 2. Borrar local
