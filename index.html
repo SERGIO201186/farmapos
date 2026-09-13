@@ -1271,7 +1271,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn btn-primary btn-sm btn-full" onclick="detectarImpresora()">🔍 Detectar impresora</button>
+          <button class="btn btn-primary btn-sm btn-full" onclick="detectarImpresora(event)">🔍 Detectar impresora</button>
           <button class="btn btn-ghost btn-sm btn-full" onclick="impresionPrueba()">🧪 Probar impresión</button>
         </div>
 
@@ -4651,7 +4651,7 @@ function testEscaner() {
   input.onkeyup = handler;
 }
 
-async function detectarImpresora() {
+async function detectarImpresora(event) {
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = 'Detectando...';
