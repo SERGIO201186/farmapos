@@ -25,6 +25,18 @@ function doGet(e) {
     return json({ok:true, msg:'pong', ts:new Date().toISOString()});
   }
 
+  // Estado del asistente de WhatsApp, para que la app muestre si ya está
+  // configurado sin exponer los tokens/API keys guardados.
+  if (action === 'estadoWhatsApp') {
+    return json({
+      ok: true,
+      configurado: !!(waProp('whatsappToken') && waProp('phoneNumberId') && waProp('verifyToken')),
+      iaConfigurada: !!waProp('anthropicApiKey'),
+      nombreClinica: waProp('nombreClinica'),
+      doctorTelefono: waProp('doctorTelefono')
+    });
+  }
+
   const sheet = getSheet(e.parameter.sheet || 'productos');
   if (action === 'get') {
     const rows = sheet.getDataRange().getValues();
@@ -47,6 +59,13 @@ function doPost(e) {
     }
 
     const {action, sheet: sheetName, data, id} = body;
+
+    // Configuración del asistente de WhatsApp desde la propia app (pestaña
+    // Configuración), sin tener que entrar al editor de Apps Script.
+    if (action === 'configurarWhatsApp') {
+      configurarAsistenteWhatsApp(data || {});
+      return json({ok:true});
+    }
 
     const sheet = getSheet(sheetName || 'productos');
     const headers = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
@@ -141,7 +160,10 @@ function json(obj) {
 
 function configurarAsistenteWhatsApp(cfg) {
   const props = PropertiesService.getScriptProperties();
-  Object.keys(cfg || {}).forEach(k => props.setProperty('WA_' + k, String(cfg[k])));
+  Object.keys(cfg || {}).forEach(k => {
+    if (cfg[k] === '' || cfg[k] == null) return; // no pisa un valor ya guardado con uno vacío
+    props.setProperty('WA_' + k, String(cfg[k]));
+  });
   return 'Configuración del asistente de WhatsApp guardada.';
 }
 
