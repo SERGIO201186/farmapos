@@ -686,6 +686,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button id="btn-actualizar-sheets" class="btn btn-ghost btn-sm" style="display:none;margin-right:4px" onclick="actualizarDesdeSheets()" title="Trae las ventas y cambios hechos desde otros dispositivos (caja)">🔄<span class="btn-label"> Actualizar</span></button>
   <div id="sync-dot" title="Estado de sincronización"></div>
   <span id="sync-label" style="font-size:11px;color:var(--txt3)">Sin conectar</span>
+  <button id="btn-citas-bell" onclick="abrirCitasPendientesModal()" style="display:none;position:relative;margin-right:4px" class="btn btn-ghost btn-sm" title="Citas pendientes de agendar">
+    🔔<span class="btn-label"> Citas</span>
+    <span id="citas-badge-count" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--rojo);color:#fff;font:700 10px var(--sans);min-width:16px;height:16px;line-height:16px;border-radius:8px;text-align:center;padding:0 3px">0</span>
+  </button>
   <a href="https://wa.me/525547894225?text=Hola%2C%20necesito%20soporte%20con%20FarmaPos%20PRO" target="_blank" class="btn btn-ghost btn-sm" style="margin:0 4px" title="Contactar soporte">💬<span class="btn-label"> Soporte</span></a>
   <button id="btn-install" onclick="installPWA()" style="display:none" class="btn btn-ghost btn-sm" title="Instalar aplicación">📲<span class="btn-label"> Instalar</span></button>
   <div id="caja-badge">
@@ -824,7 +828,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <button class="tab-btn active" onclick="showTab('rx-nueva',this)">Nueva receta</button>
     <button class="tab-btn" onclick="showTab('rx-emitidas',this)">Recetas emitidas</button>
     <button class="tab-btn" onclick="showTab('rx-pacientes',this)">Pacientes</button>
-    <button class="tab-btn" onclick="showTab('rx-citas',this)">📅 Citas</button>
+    <button class="tab-btn" data-tab="rx-citas" onclick="showTab('rx-citas',this)">📅 Citas</button>
   </div>
 
   <!-- NUEVA RECETA -->
@@ -1251,7 +1255,10 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
           <input id="wa-doctor-tel" placeholder="521XXXXXXXXXX">
         </div>
       </div>
-      <button class="btn btn-primary" onclick="guardarConfigWhatsApp()">💾 Guardar configuración del asistente</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="guardarConfigWhatsApp()">💾 Guardar configuración del asistente</button>
+        <button class="btn btn-ghost" onclick="pedirPermisoNotificaciones()">🔔 Activar notificaciones de este navegador</button>
+      </div>
 
       <details style="margin-top:14px">
         <summary style="font:600 12px var(--sans);cursor:pointer;color:var(--indigo)">📋 Instrucciones para el técnico instalador</summary>
@@ -1267,6 +1274,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
           &nbsp;&nbsp;b) Genera una API Key ahí y pégala abajo. El costo de los mensajes lo paga el cliente directo a Anthropic — no pasa por Omnia ni por ti.<br><br>
           <strong>3.</strong> Llena los campos de arriba con esos datos y da clic en "Guardar configuración del asistente". Necesitas tener ya guardada la URL del Apps Script (sección de arriba) antes de poder guardar esto.<br><br>
           Los campos de token/API Key nunca se vuelven a mostrar aquí una vez guardados (se guardan cifrados del lado de Google, en Script Properties, no en la hoja de cálculo) — si necesitas cambiarlos, simplemente vuelve a escribirlos; dejarlos en blanco conserva el valor ya guardado.<br><br>
+          <strong>4.</strong> Cada cita que agende el asistente avisa sola con una campana 🔔 en la barra de arriba — tanto en el dispositivo del doctor como en el de mostrador/caja. Para que además salga como notificación del propio navegador (aunque la pestaña no esté al frente), en <strong>cada dispositivo</strong> da clic en "Activar notificaciones de este navegador" y acepta el permiso que pida el navegador.<br><br>
           <strong>⚠️ Importante:</strong> quien tenga la URL del Apps Script puede reconfigurar este asistente, así que no la compartas ni la publiques — solo el cliente y tú deben tenerla.
         </div>
       </details>
@@ -1536,6 +1544,21 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <div class="ticket-actions">
       <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-receta')">✕ Cerrar</button>
       <button class="btn btn-indigo" style="flex:2" onclick="imprimirRecetaActual()">🖨 Imprimir receta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Citas pendientes: aviso rápido para el doctor Y para el mostrador
+     (el dispositivo de caja no tiene acceso a Recetas, así que este modal
+     es la única forma en que el personal de farmacia ve que hay una cita
+     agendada por WhatsApp). -->
+<div class="modal-bg" id="modal-citas-pendientes">
+  <div class="modal">
+    <h3>🔔 Citas pendientes</h3>
+    <div id="citas-pendientes-lista" style="max-height:50vh;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-citas-pendientes')">Cerrar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-citas-pendientes');abrirCitasEnRecetas()">📅 Gestionar en Recetas</button>
     </div>
   </div>
 </div>
@@ -4624,6 +4647,13 @@ async function initApp() {
   aplicarRestriccionesRol();
   document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
   setTimeout(()=>document.getElementById('pos-barcode').focus(), 300);
+
+  // Aviso de citas nuevas del asistente de WhatsApp — ver comentario junto a
+  // chequearCitasNuevas(). Corre en el doctor Y en el mostrador/caja.
+  actualizarBadgeCitas();
+  chequearCitasNuevas();
+  setInterval(chequearCitasNuevas, CITAS_POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) chequearCitasNuevas(); });
 }
 initApp();
 
@@ -5300,6 +5330,97 @@ async function cargarEstadoWhatsApp() {
   } catch(e) {
     // Silencioso: no bloquea la pantalla de Configuración por esto.
   }
+}
+
+function pedirPermisoNotificaciones() {
+  if (!window.Notification) { toast('Tu navegador no soporta notificaciones','warn'); return; }
+  Notification.requestPermission().then(p => {
+    toast(p==='granted' ? 'Notificaciones del navegador activadas ✓' : 'Notificaciones no activadas', p==='granted'?'ok':'warn');
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  AVISO DE CITAS NUEVAS (asistente de WhatsApp) — a diferencia del resto
+//  de "Recetas", esto SÍ debe avisarle también al mostrador/caja (no solo
+//  al doctor), para que alguien se entere de la cita aunque el doctor no
+//  esté viendo la pantalla en ese momento. Por eso la campana vive en el
+//  topbar (fuera de aplicarRestriccionesRol()) y no dentro de la vista
+//  Recetas, que sí está oculta para el dispositivo de caja.
+//
+//  Sondea la hoja "citas" cada CITAS_POLL_MS mientras la pestaña esté
+//  visible y haya una URL de Sheets configurada. A propósito no es más
+//  agresivo que eso — mismo motivo por el que "Actualizar" es manual en el
+//  resto de la app (ver actualizarDesdeSheets): no gastar la cuota diaria
+//  de ejecuciones de Apps Script sondeando seguido desde varios
+//  dispositivos a la vez.
+// ══════════════════════════════════════════════════════════
+const CITAS_POLL_MS = 180000; // 3 minutos
+let citasNotificadas = new Set();
+try { citasNotificadas = new Set(JSON.parse(localStorage.getItem('fp2_citas_notificadas')||'[]')); } catch(e) {}
+
+function marcarCitaNotificada(id) {
+  citasNotificadas.add(id);
+  // Tope de 300 para que la lista guardada no crezca para siempre.
+  localStorage.setItem('fp2_citas_notificadas', JSON.stringify([...citasNotificadas].slice(-300)));
+}
+
+async function chequearCitasNuevas() {
+  if (!cfg.url || document.hidden) return;
+  try {
+    const citas = await sheetsGet('citas');
+    if (!citas) return;
+    db.citas = citas;
+    save();
+
+    citas.filter(c => c.estado === 'pendiente' && !citasNotificadas.has(c.id))
+      .forEach(c => { marcarCitaNotificada(c.id); notificarCitaNueva(c); });
+
+    actualizarBadgeCitas();
+    if (document.getElementById('view-recetas')?.classList.contains('active')) renderCitas();
+  } catch(e) { /* sondeo silencioso: un fallo aquí no debe interrumpir al usuario */ }
+}
+
+function notificarCitaNueva(c) {
+  toast(`📅 Nueva cita: ${c.paciente||'Paciente'} — ${c.fecha||''} ${c.hora||''}`, 'ok');
+  if (window.Notification && Notification.permission === 'granted') {
+    try {
+      new Notification('📅 Nueva cita agendada', {
+        body: `${c.paciente||''} — ${c.fecha||''} ${c.hora||''}${c.motivo ? '\n'+c.motivo : ''}`,
+        icon: 'icon-192.png'
+      });
+    } catch(e) {}
+  }
+}
+
+function actualizarBadgeCitas() {
+  const bell  = document.getElementById('btn-citas-bell');
+  const badge = document.getElementById('citas-badge-count');
+  if (!bell || !badge) return;
+  bell.style.display = cfg.url ? 'inline-flex' : 'none';
+  const n = (db.citas||[]).filter(c=>c.estado==='pendiente').length;
+  badge.style.display = n>0 ? 'block' : 'none';
+  badge.textContent = n>99 ? '99+' : n;
+}
+
+function abrirCitasPendientesModal() {
+  const lista = document.getElementById('citas-pendientes-lista');
+  const pendientes = (db.citas||[]).filter(c=>c.estado==='pendiente')
+    .sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+  lista.innerHTML = pendientes.length
+    ? pendientes.map(c=>`
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font:600 13px var(--sans)">${c.paciente||'—'}</div>
+          <div style="font-size:12px;color:var(--txt2)">${c.fecha||''} ${c.hora||''} · ${c.telefono||'—'}</div>
+          ${c.motivo ? `<div style="font-size:12px;color:var(--txt2);margin-top:2px">${c.motivo}</div>` : ''}
+        </div>`).join('')
+    : `<p style="text-align:center;color:var(--txt2);padding:20px 0">Sin citas pendientes</p>`;
+  openModal('modal-citas-pendientes');
+}
+
+function abrirCitasEnRecetas() {
+  showView('recetas', document.querySelector('.dnav-btn[data-view="recetas"]'));
+  const tabBtn = document.querySelector('.tab-btn[data-tab="rx-citas"]');
+  if (tabBtn) showTab('rx-citas', tabBtn);
 }
 
 // ══════════════════════════════════════════════════════════
